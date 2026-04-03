@@ -1,3 +1,49 @@
 from django.db import models
-
+from usuarios.models import Usuario
+from PIL import Image
 # Create your models here.
+class EstadoVehiculo(models.Model):
+    nombre = models.CharField(max_length=30)
+
+class TipoVehiculo(models.Model):
+    nombre = models.CharField(max_length=30)
+
+class Marca(models.Model):
+    nombre = models.CharField(max_length=50)
+
+class Modelo(models.Model):
+    nombre = models.CharField(max_length=50)
+
+    # Relaciones
+    marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True)
+
+class Vehiculo(models.Model):
+    matricula = models.CharField(max_length=25, unique=True)
+    precio_x_dia = models.DecimalField(max_digits=10, decimal_places=2)
+    imagen = models.ImageField(upload_to='vehiculos/', null=True, blank=True)
+
+    # Relaciones
+    dueño = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+    tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
+    estado_vehiculo = models.ForeignKey(EstadoVehiculo, on_delete=models.SET_NULL, null=True)
+    modelo = models.ForeignKey(Modelo, on_delete=models.SET_NULL, null=True)
+
+    # Sobrescribimos el método save para redimensionar las fotos (que todas tengan igual tamaño)
+    def save(self, *args, **kwargs):
+        # 1. Guardamos el modelo normalmente
+        super().save(*args, **kwargs)
+
+        # 2. Verificamos si el vehículo realmente tiene una imagen cargada
+        if self.imagen:
+            # 3. Abrimos la imagen desde su ruta física
+            img = Image.open(self.imagen.path)
+
+            # 4. Verificamos si la imagen es muy grande
+            if img.height > 600 or img.width > 800:
+                tamaño_maximo = (800, 600)
+                
+                # thumbnail achica la imagen sin deformarla
+                img.thumbnail(tamaño_maximo)
+                
+                # 5. Guardamos la imagen achicada, pisando el archivo original
+                img.save(self.imagen.path)

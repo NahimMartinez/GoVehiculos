@@ -120,3 +120,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# URL pública que se va a usar en el navegador (ej: localhost:8000/media/imagen.jpg)
+MEDIA_URL = '/media/'
+
+# Ruta física de la computadora donde Django va a crear la carpeta y guardar los archivos
+MEDIA_ROOT = BASE_DIR / 'media'
