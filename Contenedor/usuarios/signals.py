@@ -33,18 +33,19 @@ def ensure_groups_and_permissions(sender, **kwargs):
 
     group_cliente, _ = Group.objects.get_or_create(name=ROLE_CLIENTE)
     group_socio, _ = Group.objects.get_or_create(name=ROLE_SOCIO)
-
+    # Los permisos del cliente incluyen ver vehículos, agregar reservas, ver reservas y eliminar reservas, lo que les permite interactuar con la plataforma para alquilar vehículos sin tener acceso a la gestión de los mismos.
     permisos_cliente = [
         perm
         for perm in permissions
         if perm.codename in {"view_vehiculo", "add_reserva", "view_reserva", "delete_reserva"}
     ]
+    # Los permisos del socio incluyen todos los permisos del cliente más los permisos para gestionar vehículos y ver su propia flota, lo que les permite tener un control total sobre sus vehículos y reservas.
     permisos_socio = [
         perm
         for perm in permissions
         if perm.codename
-        in {"add_vehiculo", "change_vehiculo", "delete_vehiculo", "view_vehiculo", "view_own_fleet"}
+        in {"add_vehiculo", "change_vehiculo", "delete_vehiculo", "view_vehiculo", "view_own_fleet"} # view_own_fleet es un permiso personalizado que permite a los socios ver solo su propia flota de vehículos, lo que es esencial para la gestión de sus vehículos sin interferir con los vehículos de otros socios.
     ]
-# Cada vez que se ejecuta esta señal, se asegura de que los grupos "Clientes" y "Socios" existan, y luego asigna los permisos correspondientes a cada grupo. Esto garantiza que los permisos estén siempre actualizados después de migrar la base de datos, lo que es crucial para el correcto funcionamiento de la aplicación.
+    # Cada vez que se ejecuta esta función, se asegura de que los grupos "Clientes" y "Socios" existan, y luego asigna los permisos correspondientes a cada grupo. Esto garantiza que los permisos estén siempre actualizados después de migrar la base de datos, lo que es crucial para el correcto funcionamiento de la aplicación. Nos aseguramos que tras cada migración existan los grupos y permisos necesarios para que los usuarios puedan realizar las acciones correspondientes a su rol sin problemas de autorización.
     group_cliente.permissions.add(*permisos_cliente)
     group_socio.permissions.add(*permisos_socio)
