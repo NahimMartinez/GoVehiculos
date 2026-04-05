@@ -1,0 +1,46 @@
+/*  Importamos la fuente Inter desde Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/*  Definimos nuestras variables para paleta de colores globales */
+:root {
+    /* Paleta de Colores */
+    --color-primario: #2563eb;    /* Azul principal para botones y enlaces */
+    --color-primario-hover: #1d4ed8; /* Azul un poco más oscuro para cuando pasas el mouse */
+    
+    --color-secundario: #1e293b;  /* Gris muy oscuro para el Navbar o Footer */
+    --color-acento: #10b981;      /* Verde para acciones de éxito (ej: Reserva confirmada) */
+    --color-peligro: #ef4444;     /* Rojo para errores o botón de cerrar sesión */
+    
+    --color-fondo: #f8fafc;       /* Gris súper clarito para el fondo de la web */
+    --color-texto: #334155;       /* Gris oscuro para los párrafos comunes */
+    --color-blanco: #ffffff;      /* Blanco puro para las tarjetas de los vehículos */
+
+    /* Tipografía */
+    --fuente-principal: 'Inter', sans-serif;
+}
+
+/* Reseteo universal para que todos los navegadores se vean igual */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Reglas básicas a todo el cuerpo de la página */
+body {
+    font-family: var(--fuente-principal);
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    line-height: 1.6; /* Mejora la lectura de los textos */
+}
+
+/* Estilo general para todos los enlaces */
+a {
+    text-decoration: none;
+    color: var(--color-primario);
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--color-primario-hover);
+}

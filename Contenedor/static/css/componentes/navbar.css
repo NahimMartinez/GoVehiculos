@@ -1,0 +1,43 @@
+.navbar {
+    display: flex;
+    justify-content: space-between; /* Empuja el logo a la izquierda y los links a la derecha */
+    align-items: center; /* Centra los elementos verticalmente */
+    
+    background-color: var(--color-blanco); 
+    padding: 1rem 5%; /* 1rem arriba/abajo, 5% de márgenes a los costados */
+    
+    /* Le da una pequeña sombra abajo para separarlo del fondo gris de la página */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); 
+    
+    /* Hace que el navbar se quede pegado arriba cuando haces scroll hacia abajo */
+    position: sticky; 
+    top: 0;
+    z-index: 1000;
+}
+
+/* --- ESTILOS DEL LOGO --- */
+.navbar-brand .nav-link {
+    font-size: 1.5rem;
+    font-weight: 700; /* Letra en negrita para que parezca un logo */
+    color: var(--color-primario);
+}
+
+/* --- CONTENEDOR DE LOS ENLACES --- */
+.navbar-nav {
+    display: flex;
+    gap: 1.5rem; /* Separa los enlaces sin tener que calcular márgenes */
+    align-items: center;
+}
+
+/* --- ESTILOS DE LOS ENLACES INDIVIDUALES --- */
+.navbar-nav .nav-link {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-secundario); /* Gris oscuro para el estado normal */
+    padding: 0.5rem 0; 
+}
+
+/* Efecto al pasar el mouse por encima */
+.navbar-nav .nav-link:hover {
+    color: var(--color-primario); /* Se pinta de tu azul principal */
+}
