@@ -1,5 +1,5 @@
+from django.conf import settings
 from django.db import models
-from usuarios.models import Usuario
 from PIL import Image
 # Create your models here.
 class EstadoVehiculo(models.Model):
@@ -23,7 +23,7 @@ class Vehiculo(models.Model):
     imagen = models.ImageField(upload_to='vehiculos/', null=True, blank=True)
 
     # Relaciones
-    dueño = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True)
+    dueño = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
     estado_vehiculo = models.ForeignKey(EstadoVehiculo, on_delete=models.SET_NULL, null=True)
     modelo = models.ForeignKey(Modelo, on_delete=models.SET_NULL, null=True)

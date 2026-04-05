@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'usuarios',
 ]
 
+# Indicamos que el modelo de usuario personalizado a utilizar es el modelo Usuario que definimos en la aplicación de usuarios, para que Django lo use en lugar del modelo de usuario por defecto de Django, lo que nos permite agregar campos personalizados como el DNI y adaptar el sistema de autenticación a nuestras necesidades específicas. 
+AUTH_USER_MODEL = 'usuarios.Usuario'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

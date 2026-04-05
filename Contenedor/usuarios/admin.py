@@ -1,9 +1,13 @@
 from django.contrib import admin
-# Importamos los modelos que vamos a registrar en el panel de administración de Django
-from .models import TipoUsuario, Usuario
-# Register your models here.
+from django.contrib.auth.admin import UserAdmin
 
-# Registramos los modelos para que sean visibles en el panel de administración de Django
-admin.site.register(TipoUsuario)
-admin.site.register(Usuario)
+from .models import Usuario
+
+
+@admin.register(Usuario)
+class UsuarioAdmin(UserAdmin):
+    fieldsets = UserAdmin.fieldsets + (("Datos extra", {"fields": ("dni",)}),)
+    add_fieldsets = UserAdmin.add_fieldsets + (("Datos extra", {"fields": ("dni",)}),)
+    list_display = ("email", "username", "first_name", "last_name", "is_staff")
+    ordering = ("email",)
 

@@ -1,5 +1,5 @@
+from django.conf import settings
 from django.db import models
-from usuarios.models import Usuario
 from vehiculos.models import Vehiculo
 
 # Create your models here.
@@ -17,7 +17,7 @@ class Reserva(models.Model):
 
     #Relaciones
     estado_reserva = models.ForeignKey(EstadoReserva, on_delete=models.SET_NULL, null=True)
-    cliente = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True)
+    cliente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     vehiculo = models.ForeignKey(Vehiculo, on_delete=models.SET_NULL, null=True)
 
 class Pago(models.Model):
