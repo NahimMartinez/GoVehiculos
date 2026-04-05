@@ -4,7 +4,8 @@ from .serializer import UsuarioSerializer
 from .models import Usuario
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import Group
-from forms import RegistroUsuarioForm
+from django.contrib.auth import authenticate, login
+from .forms import RegistroUsuarioForm
 
 # Create your views here.
 
@@ -35,3 +36,20 @@ def registro_view(request):
         form = RegistroUsuarioForm()
         
     return render(request, 'usuarios/registro.html', {'form': form})
+
+def login_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Autenticar usando email como username (ya que EMAIL es el USERNAME_FIELD)
+        user = authenticate(request, username=email, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return redirect('inicio')  # Redirigir a la página de inicio
+        else:
+            context = {'error': 'Email o contraseña incorrectos'}
+            return render(request, 'usuarios/login.html', context)
+    
+    return render(request, 'usuarios/login.html')

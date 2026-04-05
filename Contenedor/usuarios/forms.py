@@ -9,5 +9,5 @@ class RegistroUsuarioForm(UserCreationForm):
     class Meta:
         model = Usuario
         # Campos a mostrar en el HTML
-        fields = ['email', 'dni', 'username', 'rol']
+        fields = ['email', 'dni', 'username', 'rol', 'password1', 'password2']
 

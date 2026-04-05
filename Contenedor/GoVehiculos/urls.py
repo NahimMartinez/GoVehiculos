@@ -14,7 +14,8 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index, name='inicio'),
-    path('api/v1/', include('usuarios.urls')), # Incluimos las URLs de la aplicación de usuarios para que estén disponibles en la ruta 'api/'
+    path('auth/', include('usuarios.urls')), # Incluimos las URLs de autenticación (registro, login)
+    path('api/', include('usuarios.urls')), # Incluimos las URLs de la API REST de usuarios
     path('schema/', schema_view, name='openapi-schema'),
 ]
 

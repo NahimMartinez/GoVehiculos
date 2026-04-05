@@ -1,1 +1,29 @@
-<!-- Registro -->
+{% extends 'base.html' %}
+
+{% block contenido %}
+<div class="contenedor-principal">
+    <h2>Crear una cuenta nueva</h2>
+    <p>Completá tus datos para unirte a GoVehiculos.</p>
+
+    <form method="POST" action="">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="errores">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {{ form.as_p }}
+        
+        <button type="submit" class="btn-principal">Registrarme</button>
+    </form>
+    <!-- 
+    <div class="opciones-extra">
+        <p>¿Ya tenés una cuenta? <a href="{% url 'login' %}">Iniciá sesión acá</a></p>
+    </div>
+    -->
+</div>
+{% endblock %}
