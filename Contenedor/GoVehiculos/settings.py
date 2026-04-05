@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Aplicaciones del proyecto
+    # Aplicaciones creadas para el proyecto
     'reservas',
     'vehiculos',
     'usuarios',
