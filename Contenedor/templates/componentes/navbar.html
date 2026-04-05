@@ -5,10 +5,20 @@
     
     <nav class="navbar-nav">
 
-            <a href="" class="nav-link">Vehiculos</a>
-            <a href="" class="nav-link">Mis Vehiculos</a>
+        <a href="" class="nav-link">Vehiculos</a>
+        {% if user.is_authenticated %}
+            {% for group in user.groups.all %}
+                {% if group.name == 'Socios' %}
+                    <a href="" class="nav-link">Mis Vehículos</a>
+                {% endif %}
+            {% endfor %}
             <a href="" class="nav-link">Mis Reservas</a>
-            <a href="{% url 'registro' %}" class="nav-link">Registrarme</a>
+            <a href="" class="nav-link">Hola, {{ user.username }}</a>
+            <a href="{% url 'logout' %}" class="nav-link">Cerrar Sesión</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="nav-link">Iniciar Sesión</a>
+            <a href="{% url 'registro' %}" class="nav-link">Registrarse</a>
+        {% endif %}
 
     </nav>
 </header>

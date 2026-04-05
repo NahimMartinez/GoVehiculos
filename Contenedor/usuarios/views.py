@@ -4,7 +4,7 @@ from .serializer import UsuarioSerializer
 from .models import Usuario
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import Group
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from .forms import RegistroUsuarioForm
 
 # Create your views here.
@@ -53,3 +53,7 @@ def login_view(request):
             return render(request, 'usuarios/login.html', context)
     
     return render(request, 'usuarios/login.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('inicio')
