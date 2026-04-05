@@ -25,6 +25,7 @@ def ensure_groups_and_permissions(sender, **kwargs):
     ]
 
     permissions = []
+    # El for hace lo siguiente por cada permiso requerido: intenta obtener el permiso de la base de datos utilizando su content type (que se basa en el modelo al que pertenece) y su codename (que es el nombre del permiso). Si el permiso no existe, simplemente lo omite. Esto asegura que solo se asignen permisos válidos a los grupos, y que la función pueda ejecutarse sin errores incluso si algunos permisos aún no han sido creados por las migraciones. Por ejemplo: [(Vehiculo, "view_vehiculo"), (Reserva, "add_reserva"), etc.]
     for model, codename in required_permissions:
         try:
             permissions.append(Permission.objects.get(content_type__app_label=model._meta.app_label, codename=codename))
