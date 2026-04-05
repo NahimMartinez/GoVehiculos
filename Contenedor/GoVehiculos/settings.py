@@ -128,3 +128,7 @@ MEDIA_URL = '/media/'
 
 # Ruta física de la computadora donde Django va a crear la carpeta y guardar los archivos
 MEDIA_ROOT = BASE_DIR / 'media'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema',
+}
