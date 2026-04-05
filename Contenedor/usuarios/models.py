@@ -7,4 +7,4 @@ class Usuario(AbstractUser):
     dni = models.CharField(max_length=100, unique=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    REQUIRED_FIELDS = ["username", "dni"]
