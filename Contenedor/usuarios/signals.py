@@ -44,7 +44,7 @@ def ensure_groups_and_permissions(sender, **kwargs):
         perm
         for perm in permissions
         if perm.codename
-        in {"add_vehiculo", "change_vehiculo", "delete_vehiculo", "view_vehiculo", "view_own_fleet"} # view_own_fleet es un permiso personalizado que permite a los socios ver solo su propia flota de vehículos, lo que es esencial para la gestión de sus vehículos sin interferir con los vehículos de otros socios.
+        in {"add_vehiculo", "change_vehiculo", "delete_vehiculo", "view_vehiculo", "view_own_fleet", "add_reserva", "delete_reserva", "view_reserva"} # view_own_fleet es un permiso personalizado que permite a los socios ver solo su propia flota de vehículos, lo que es esencial para la gestión de sus vehículos sin interferir con los vehículos de otros socios.
     ]
     # Cada vez que se ejecuta esta función, se asegura de que los grupos "Clientes" y "Socios" existan, y luego asigna los permisos correspondientes a cada grupo. Esto garantiza que los permisos estén siempre actualizados después de migrar la base de datos, lo que es crucial para el correcto funcionamiento de la aplicación. Nos aseguramos que tras cada migración existan los grupos y permisos necesarios para que los usuarios puedan realizar las acciones correspondientes a su rol sin problemas de autorización.
     group_cliente.permissions.add(*permisos_cliente)
