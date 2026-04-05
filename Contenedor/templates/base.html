@@ -16,13 +16,11 @@
 
     {% include 'componentes/navbar.html' %}
 
-
-    <div class="contenedor-principal">
-        <main class="contenido-dinamico">
-            {% block contenido %}
-            {% endblock %}
-        </main>
-    </div>
+  
+    <main class="contenido-principal">
+        {% block contenido %}
+        {% endblock %}
+    </main>
 
     {% include 'componentes/footer.html' %}
 

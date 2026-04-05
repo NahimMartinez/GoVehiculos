@@ -32,6 +32,14 @@ body {
     background-color: var(--color-fondo);
     color: var(--color-texto);
     line-height: 1.6; /* Mejora la lectura de los textos */
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Obliga al body a medir como mínimo el 100% de la pantalla */
+}
+
+.contenido-principal {
+    flex-grow: 1; /* Esto empuja al footer hacia abajo de todo */
 }
 
 /* Estilo general para todos los enlaces */

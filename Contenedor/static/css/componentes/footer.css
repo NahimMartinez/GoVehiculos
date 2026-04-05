@@ -1,0 +1,16 @@
+.footer {
+    background-color: var(--color-secundario);
+    color: var(--color-fondo);
+    text-align: center; /* Centramos el texto horizontalmente */
+    padding: 1.5rem 20px; /* Espacio cómodo arriba/abajo y a los costados */
+    width: 100%;
+    
+    /* Un pequeño detalle visual arriba para separarlo sutilmente */
+    border-top: 4px solid var(--color-primario); 
+}
+
+/* Hacemos que el nombre brille un poco más que el resto del texto */
+.footer strong {
+    color: var(--color-blanco);
+    font-weight: 600;
+}
