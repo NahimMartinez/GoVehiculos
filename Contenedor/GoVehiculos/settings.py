@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Añadimos la dependencia de Django rest framework para crear la API REST
+    'rest_framework',
 
     # Aplicaciones creadas para el proyecto
     'reservas',
