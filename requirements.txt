@@ -3,3 +3,5 @@ Django==6.0.3
 pillow==12.2.0
 sqlparse==0.5.5
 tzdata==2025.3
+djangorestframework==3.17.1
+coreapi==2.3.3

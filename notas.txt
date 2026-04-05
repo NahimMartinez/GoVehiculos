@@ -1,0 +1,128 @@
+Comandos importantes
+
+# Entorno virtual (Windows)
+# Crear entorno
+python -m venv <nombreEntorno>
+Ejemplo: python -m venv venv
+
+# Activar entorno (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# Desactivar entorno
+deactivate
+
+# Dependencias basicas
+# Instalar desde requirements.txt
+pip install -r requirements.txt
+
+# Congelar dependencias actuales
+pip freeze > requirements.txt
+
+# Ver paquetes instalados
+pip list
+
+# Django: instalacion y proyecto
+# Instalar Django
+pip install Django
+
+# Crear proyecto
+django-admin startproject <nombreProyecto>
+Ejemplo: django-admin startproject GoVehiculos
+
+# Crear proyecto en la carpeta actual (evita subcarpeta extra)
+django-admin startproject GoVehiculos .
+
+# Crear app
+django-admin startapp <nombreApp>
+Ejemplo: django-admin startapp vehiculos
+
+# Ejecutar servidor de desarrollo
+# Opcion 1: entrar a la carpeta con manage.py
+cd Contenedor
+python manage.py runserver
+
+# Opcion 2: ejecutar desde la raiz del repo
+python Contenedor/manage.py runserver
+
+# Utilidades de Django (manage.py)
+# Abrir shell interactivo de Django
+python manage.py shell
+
+# Abrir consola de la base de datos (si aplica)
+python manage.py dbshell
+
+# Ver configuracion y problemas comunes
+python manage.py check
+
+# Crear superusuario (admin)
+python manage.py createsuperuser
+
+# Migraciones: primero crear, luego aplicar
+# Detecta cambios en modelos y genera migraciones
+python manage.py makemigrations
+
+# Crear migraciones solo para una app
+python manage.py makemigrations <nombreApp>
+
+# Ver migraciones pendientes o aplicadas
+python manage.py showmigrations
+
+# Ver SQL de una migracion especifica
+python manage.py sqlmigrate <nombreApp> <id_migracion>
+Ejemplo: python manage.py sqlmigrate vehiculos 0001
+
+# Aplica migraciones a la base de datos
+python manage.py migrate
+
+# Aplicar migraciones de una app
+python manage.py migrate <nombreApp>
+
+# Recopilar archivos estaticos (produccion)
+python manage.py collectstatic
+
+# Ejecutar tests
+python manage.py test
+
+# Exportar e importar datos (fixtures)
+python manage.py dumpdata <app.Model> --indent 2 > datos.json
+python manage.py loaddata datos.json
+
+# Internacionalizacion (i18n)
+python manage.py makemessages -l es
+python manage.py compilemessages
+
+# Librerias tipicas para proyectos web con Django
+# API REST
+pip install djangorestframework
+
+# Documentacion API (OpenAPI)
+pip install drf-spectacular
+
+# CORS
+pip install django-cors-headers
+
+# Variables de entorno
+pip install django-environ
+
+# Archivos estaticos en produccion
+pip install whitenoise
+
+# Imagenes
+pip install pillow
+
+# Base de datos PostgreSQL
+pip install psycopg2-binary
+
+# Herramientas de desarrollo
+pip install django-debug-toolbar
+pip install django-extensions
+pip install pytest pytest-django
+pip install coverage
+pip install black isort flake8 mypy
+pip install pre-commit
+
+# Uso de la extension Better Comments
+* Important Information is highlighted
+! Deprecated method do not use
+? Should this method be exposed in the public API?
+TODO: Refactor this method so that it conforms to the API
