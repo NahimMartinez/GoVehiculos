@@ -23,7 +23,7 @@ class Vehiculo(models.Model):
     imagen = models.ImageField(upload_to='vehiculos/', null=True, blank=True)
 
     # Relaciones
-    dueño = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
+    duenio = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
     estado_vehiculo = models.ForeignKey(EstadoVehiculo, on_delete=models.SET_NULL, null=True)
     modelo = models.ForeignKey(Modelo, on_delete=models.SET_NULL, null=True)
@@ -47,3 +47,9 @@ class Vehiculo(models.Model):
                 
                 # 5. Guardamos la imagen achicada, pisando el archivo original
                 img.save(self.imagen.path)
+
+# Definimos permisos personalizados para el modelo Vehiculo, en este caso un permiso para que los dueños de vehículos puedan ver solo su propia flota de vehículos.
+    class Meta:
+        permissions = [
+            ("view_own_fleet", "Puede ver su propia flota"),
+        ]

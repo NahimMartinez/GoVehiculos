@@ -43,10 +43,11 @@ INSTALLED_APPS = [
     # Aplicaciones creadas para el proyecto
     'reservas',
     'vehiculos',
-    'usuarios',
+    # En vez de registrar la aplicación de usuarios con su nombre 'usuarios', registramos la configuración completa 'usuarios.apps.UsuariosConfig' para asegurarnos de que se ejecute el método ready() y se registren las señales correctamente. Esto es importante para que las señales se ejecuten en el momento adecuado, como después de migrar la base de datos, para crear los grupos y permisos necesarios.
+    'usuarios.apps.UsuariosConfig',
 ]
 
-# Indicamos que el modelo de usuario personalizado a utilizar es el modelo Usuario que definimos en la aplicación de usuarios, para que Django lo use en lugar del modelo de usuario por defecto de Django, lo que nos permite agregar campos personalizados como el DNI y adaptar el sistema de autenticación a nuestras necesidades específicas. 
+# Indicamos que el modelo de usuario personalizado a utilizar es el modelo Usuario que definimos en la aplicación de usuarios, para que Django lo use en lugar del modelo de usuario por defecto de Django mediante que abstraemos auth_user que viene nativo, lo que nos permite agregar campos personalizados como el DNI y adaptar el sistema de autorización y autenticación a nuestras necesidades específicas. 
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
 MIDDLEWARE = [
