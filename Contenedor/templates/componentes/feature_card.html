@@ -1,0 +1,64 @@
+<article class="group relative h-full overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary {{ extra_classes|default:'' }}">
+    {% if shape == 'ring' %}
+        <div class="absolute -right-10 -bottom-10 text-surface-variant/30 opacity-30 transition-opacity group-hover:opacity-50" aria-hidden="true">
+            <svg width="200" height="200" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 6" />
+            </svg>
+        </div>
+    {% endif %}
+    {% if shape == 'grid' %}
+        <div class="absolute -left-8 -top-8 text-surface-variant/20 opacity-25 transition-opacity group-hover:opacity-40" aria-hidden="true">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+                <rect x="10" y="10" width="160" height="160" rx="16" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 10" />
+                <rect x="36" y="36" width="108" height="108" rx="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 8" />
+            </svg>
+        </div>
+    {% endif %}
+    {% if shape == 'wave' %}
+        <div class="absolute -right-10 top-6 text-surface-variant/20 opacity-25 transition-opacity group-hover:opacity-40" aria-hidden="true">
+            <svg width="200" height="140" viewBox="0 0 200 140">
+                <path d="M10 40 C40 10, 70 10, 100 40 C130 70, 160 70, 190 40" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M10 90 C40 60, 70 60, 100 90 C130 120, 160 120, 190 90" fill="none" stroke="currentColor" stroke-width="2" />
+            </svg>
+        </div>
+    {% endif %}
+    {% if shape == 'orbit' %}
+        <div class="absolute -left-10 -bottom-8 text-surface-variant/20 opacity-25 transition-opacity group-hover:opacity-40" aria-hidden="true">
+            <svg width="220" height="180" viewBox="0 0 220 180">
+                <ellipse cx="110" cy="90" rx="90" ry="48" fill="none" stroke="currentColor" stroke-width="2" />
+                <ellipse cx="110" cy="90" rx="60" ry="30" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 8" />
+            </svg>
+        </div>
+    {% endif %}
+    {% if tag %}
+        <div class="text-[0.65rem] font-bold uppercase tracking-[0.3em] text-on-surface-variant mb-4">{{ tag }}</div>
+    {% endif %}
+    <div class="flex items-center gap-4 mb-5">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:scale-110 {{ icon_wrap_classes|default:'' }}">
+            <span class="material-symbols-outlined text-[1.5rem] {{ icon_classes|default:'' }}">{{ icon }}</span>
+        </div>
+        <h3 class="text-xl font-headline font-extrabold text-on-surface {{ title_classes|default:'' }}">{{ title }}</h3>
+    </div>
+    {% if description %}
+        <p class="text-sm text-on-surface-variant leading-relaxed {{ description_classes|default:'' }}">{{ description }}</p>
+    {% endif %}
+    {% if feature_1 or feature_2 or feature_3 or feature_4 or feature_5 %}
+        <ul class="space-y-2 text-sm text-on-surface-variant {{ list_classes|default:'' }}">
+            {% if feature_1 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_1 }}</span></li>{% endif %}
+            {% if feature_2 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_2 }}</span></li>{% endif %}
+            {% if feature_3 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_3 }}</span></li>{% endif %}
+            {% if feature_4 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_4 }}</span></li>{% endif %}
+            {% if feature_5 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_5 }}</span></li>{% endif %}
+        </ul>
+    {% endif %}
+    {% if cta_text %}
+        <a class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary {{ cta_classes|default:'' }}" href="{{ cta_href|default:'#' }}">
+            {{ cta_text }} <span aria-hidden="true">→</span>
+        </a>
+    {% endif %}
+    {% if benefit %}
+        <div class="mt-6 border-t border-outline-variant/20 pt-4 text-sm font-semibold text-primary {{ benefit_classes|default:'' }}">
+            {{ benefit }}
+        </div>
+    {% endif %}
+</article>
