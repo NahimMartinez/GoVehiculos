@@ -30,20 +30,27 @@
             </svg>
         </div>
     {% endif %}
-    {% if tag %}
-        <div class="text-[0.65rem] font-bold uppercase tracking-[0.3em] text-on-surface-variant mb-4">{{ tag }}</div>
-    {% endif %}
-    <div class="flex items-center gap-4 mb-5">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:scale-110 {{ icon_wrap_classes|default:'' }}">
-            <span class="material-symbols-outlined text-[1.5rem] {{ icon_classes|default:'' }}">{{ icon }}</span>
+    {% if background_image_url %}
+        <div class="absolute inset-0">
+            <div class="absolute inset-0 {{ overlay_classes|default:'bg-gradient-to-br from-white/95 via-white/85 to-white/60' }}"></div>
+            <div class="absolute inset-0 bg-cover bg-center transition-opacity duration-500 {{ image_opacity_classes|default:'opacity-20 group-hover:opacity-30' }} {{ image_blur_classes|default:'' }}" style="background-image: url('{{ background_image_url }}');"></div>
         </div>
-        <h3 class="text-xl font-headline font-extrabold text-on-surface {{ title_classes|default:'' }}">{{ title }}</h3>
-    </div>
+    {% endif %}
+    <div class="relative z-10">
+        {% if tag %}
+            <div class="text-[0.65rem] font-bold uppercase tracking-[0.3em] mb-4 {{ tag_classes|default:'text-on-surface-variant' }}">{{ tag }}</div>
+        {% endif %}
+        <div class="flex items-center gap-4 mb-5">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:scale-110 {{ icon_wrap_classes|default:'' }}">
+                <span class="material-symbols-outlined text-[1.5rem] {{ icon_classes|default:'' }}">{{ icon }}</span>
+            </div>
+            <h3 class="text-xl font-headline font-extrabold {{ title_classes|default:'text-on-surface' }}">{{ title }}</h3>
+        </div>
     {% if description %}
-        <p class="text-sm text-on-surface-variant leading-relaxed {{ description_classes|default:'' }}">{{ description }}</p>
+        <p class="text-sm leading-relaxed {{ description_classes|default:'text-on-surface-variant' }}">{{ description }}</p>
     {% endif %}
     {% if feature_1 or feature_2 or feature_3 or feature_4 or feature_5 %}
-        <ul class="space-y-2 text-sm text-on-surface-variant {{ list_classes|default:'' }}">
+        <ul class="space-y-2 text-sm {{ list_classes|default:'text-on-surface-variant' }}">
             {% if feature_1 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_1 }}</span></li>{% endif %}
             {% if feature_2 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_2 }}</span></li>{% endif %}
             {% if feature_3 %}<li class="flex items-start gap-2"><span class="mt-1 h-2 w-2 rounded-full bg-secondary-container transition-colors group-hover:bg-primary"></span><span>{{ feature_3 }}</span></li>{% endif %}
@@ -56,9 +63,46 @@
             {{ cta_text }} <span aria-hidden="true">→</span>
         </a>
     {% endif %}
-    {% if benefit %}
-        <div class="mt-6 border-t border-outline-variant/20 pt-4 text-sm font-semibold text-primary {{ benefit_classes|default:'' }}">
-            {{ benefit }}
+        {% if fact_1 or fact_2 or fact_3 or fact_4 %}
+        <div class="mt-8 grid grid-cols-2 gap-4 border-t border-outline-variant/20 pt-4 {{ facts_wrapper_classes|default:'' }}">
+            {% if fact_1 %}
+                <div class="flex items-center gap-2 text-xs {{ fact_text_classes|default:'text-on-surface-variant' }}">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary {{ fact_icon_wrap_classes|default:'' }}">
+                        <span class="material-symbols-outlined text-base">{{ fact_icon_1|default:'schedule' }}</span>
+                    </span>
+                    <span>{{ fact_1 }}</span>
+                </div>
+            {% endif %}
+            {% if fact_2 %}
+                <div class="flex items-center gap-2 text-xs {{ fact_text_classes|default:'text-on-surface-variant' }}">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary {{ fact_icon_wrap_classes|default:'' }}">
+                        <span class="material-symbols-outlined text-base">{{ fact_icon_2|default:'verified' }}</span>
+                    </span>
+                    <span>{{ fact_2 }}</span>
+                </div>
+            {% endif %}
+            {% if fact_3 %}
+                <div class="flex items-center gap-2 text-xs {{ fact_text_classes|default:'text-on-surface-variant' }}">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary {{ fact_icon_wrap_classes|default:'' }}">
+                        <span class="material-symbols-outlined text-base">{{ fact_icon_3|default:'support_agent' }}</span>
+                    </span>
+                    <span>{{ fact_3 }}</span>
+                </div>
+            {% endif %}
+            {% if fact_4 %}
+                <div class="flex items-center gap-2 text-xs {{ fact_text_classes|default:'text-on-surface-variant' }}">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary {{ fact_icon_wrap_classes|default:'' }}">
+                        <span class="material-symbols-outlined text-base">{{ fact_icon_4|default:'shield' }}</span>
+                    </span>
+                    <span>{{ fact_4 }}</span>
+                </div>
+            {% endif %}
         </div>
-    {% endif %}
+        {% endif %}
+        {% if benefit %}
+            <div class="mt-6 border-t border-outline-variant/20 pt-4 text-sm font-semibold text-primary {{ benefit_classes|default:'' }}">
+                {{ benefit }}
+            </div>
+        {% endif %}
+    </div>
 </article>
