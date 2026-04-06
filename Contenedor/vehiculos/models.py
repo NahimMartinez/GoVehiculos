@@ -5,17 +5,30 @@ from PIL import Image
 class EstadoVehiculo(models.Model):
     nombre = models.CharField(max_length=30)
 
+    def __str__(self):
+        return self.nombre
+
 class TipoVehiculo(models.Model):
     nombre = models.CharField(max_length=30)
 
+    def __str__(self):
+        return self.nombre
+
 class Marca(models.Model):
     nombre = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.nombre
+    
 
 class Modelo(models.Model):
     nombre = models.CharField(max_length=50)
 
     # Relaciones
     marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return self.nombre + " - " + self.marca.nombre
 
 class Vehiculo(models.Model):
     matricula = models.CharField(max_length=25, unique=True)
