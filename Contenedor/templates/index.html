@@ -72,10 +72,7 @@
 <section id="catalogo" class="py-24 bg-surface px-8">
     <div class="max-w-screen-2xl mx-auto">
         <div class="flex justify-between items-end mb-16">
-            <div>
-                <h2 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Catalogo en Tiempo Real</h2>
-                <p class="text-on-surface-variant">Disponibilidad instantanea validada por HITL.</p>
-            </div>
+            <h2 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Vehículos destacados</h2>
             <div class="flex gap-2">
                 <span class="px-4 py-2 bg-surface-container-high rounded-full text-sm font-semibold">SUV</span>
                 <span class="px-4 py-2 bg-primary text-white rounded-full text-sm font-semibold">Electric</span>
@@ -129,55 +126,6 @@
         </div>
     </div>
 </section>
-
-<section id="valor-dual" class="relative overflow-hidden py-24 bg-surface px-8">
-    <div class="absolute inset-0 pointer-events-none">
-        <svg class="absolute -left-24 top-10 h-72 w-72 opacity-20" viewBox="0 0 400 400" aria-hidden="true">
-            <defs>
-                <radialGradient id="bentoGlow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.35"/>
-                    <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <circle cx="200" cy="200" r="200" fill="url(#bentoGlow)" />
-        </svg>
-        <svg class="absolute -right-16 bottom-0 h-80 w-80 opacity-20" viewBox="0 0 400 400" aria-hidden="true">
-            <defs>
-                <linearGradient id="bentoWave" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.35"/>
-                    <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
-                </linearGradient>
-            </defs>
-            <path d="M40 260 C120 200, 180 300, 260 240 C320 200, 360 220, 380 300 L380 400 L40 400 Z" fill="url(#bentoWave)" />
-        </svg>
-    </div>
-    <div class="relative max-w-screen-2xl mx-auto">
-        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between mb-12">
-            <div class="max-w-2xl">
-                <div class="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant">
-                    Propuesta de valor dual
-                </div>
-                <h2 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mt-4">Un bento que cuenta la historia</h2>
-                <p class="text-on-surface-variant mt-3">Asimetria controlada y mensajes cortos: agilidad para el cliente, control para el socio, seguridad y automatizacion como motores.</p>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-12 md:auto-rows-[220px] lg:auto-rows-[240px] md:grid-flow-dense gap-6">
-            <div class="md:col-span-6 md:row-span-2">
-                {% include 'componentes/feature_card.html' with tag='Cliente' icon='search' title='Alquila sin fricciones' description='Disponibilidad real 24/7.' cta_text='Explorar catalogo' cta_href='#catalogo' extra_classes='bg-inverse-surface text-inverse-on-surface border-white/10' shape='ring' background_image_url='https://images.pexels.com/photos/34337859/pexels-photo-34337859.jpeg' overlay_classes='bg-gradient-to-br from-inverse-surface/98 via-inverse-surface/95 to-inverse-surface/80' image_opacity_classes='opacity-10 group-hover:opacity-15' image_blur_classes='blur-[2px]' tag_classes='text-slate-200 drop-shadow' title_classes='text-white drop-shadow' description_classes='text-slate-200 drop-shadow-sm' cta_classes='text-white drop-shadow' icon_wrap_classes='bg-white/10 text-white group-hover:bg-white group-hover:text-slate-900' icon_classes='text-white group-hover:text-slate-900' facts_wrapper_classes='border-white/10' fact_text_classes='text-slate-200 drop-shadow-sm' fact_icon_wrap_classes='bg-white/10 text-white' fact_1='Disponibilidad 100% digital' fact_2='Flota con modelos verificados' fact_3='Soporte gestion 24/7' fact_4='Identidad validada' %}
-            </div>
-            <div class="md:col-span-6 md:row-span-1">
-                {% include 'componentes/feature_card.html' with tag='Socio' icon='business_center' title='Gestiona tu flota' description='Registra vehiculos, ajusta precios y controla tu rentabilidad en tiempo real.' extra_classes='bg-white/80 backdrop-blur-md border-white/20' shape='grid' %}
-            </div>
-            <div class="md:col-span-3 md:row-span-1">
-                {% include 'componentes/feature_card.html' with tag='Seguridad' icon='shield' title='Identidad validada' title_classes='text-base font-bold uppercase tracking-tight text-emerald-900' description='HITL verifica perfiles y documentos.' description_classes='mt-2 text-xs text-emerald-900/80' extra_classes='bg-emerald-50/60 border-emerald-200/60' shape='wave' %}
-            </div>
-            <div class="md:col-span-3 md:row-span-1">
-                {% include 'componentes/feature_card.html' with tag='Automatizacion' icon='bolt' title='0% solapamientos' title_classes='text-base font-bold text-white' description='El algoritmo evita reservas duplicadas y confirma al instante.' description_classes='mt-2 text-xs text-slate-200' extra_classes='bg-slate-900 border-slate-800 text-white' tag_classes='text-slate-200' icon_wrap_classes='bg-white/10 text-white' icon_classes='text-white' shape='orbit' %}
-            </div>
-        </div>
-    </div>
-</section>
-
 
 {% if not user.is_authenticated %}
 <section class="bg-inverse-surface py-16">
