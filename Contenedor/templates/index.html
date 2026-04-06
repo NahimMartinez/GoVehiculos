@@ -4,32 +4,69 @@
 {% block meta_description %}Gestion de flotas y reservas con validacion en tiempo real. Movilidad inteligente para socios y clientes.{% endblock %}
 
 {% block contenido %}
-<section class="relative h-[921px] w-full overflow-hidden">
+<section class="relative h-[921px] w-full overflow-hidden" data-carousel="hero">
     <div class="absolute inset-0 z-0">
-        <img alt="Modern electric vehicle interior" class="w-full h-full object-cover" data-alt="Interior of a luxury modern electric vehicle at dusk with ambient blue lighting and large dashboard screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGe3Fgo3taw_yZ5A2U-FY-veN8MzeW0sjEF7DcQz5SaB1JESjbbZL7J6IeP9FLY284P1yIW94X1Fy6gBoVRgWA5dmzD6sF2zaC8IodAe4OBbExlsjX0pTYO7WKC0mkjCfmX5H2XyK8pzd7sI9GHY_GT3NNqOGAweXyIz2cZJpjEjyI3ba4ow5I19LY9wjaORW5evWzB2VW7d2k0a66dgDPZp7j52qZpD2PIffXOTs7ZJxmbs4LBRf80COzpAF6yhIk2PpEIcInwUY"/>
-        <div class="absolute inset-0 hero-gradient"></div>
-    </div>
-    <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-4 max-w-5xl mx-auto">
-        <span class="text-secondary-container font-headline font-bold tracking-[0.3em] uppercase text-sm mb-6">2026 Fleet Intelligence</span>
-        <h1 class="text-6xl md:text-8xl font-headline font-extrabold text-white mb-8 tracking-tighter leading-none">
-            Movilidad sin fronteras
-        </h1>
-        <p class="text-xl text-surface-variant max-w-2xl font-light mb-12 leading-relaxed">
-            El fin de la burocracia manual. Gestionamos tu movilidad con precision de ingenieria y validacion en tiempo real.
-        </p>
-        <div class="flex flex-col md:flex-row gap-4">
-            <a class="px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-white rounded-lg font-bold shadow-xl hover:translate-y-[-2px] transition-all" href="#catalogo">
-                Explorar Vehiculos
-            </a>
-            <a class="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-lg font-bold hover:bg-white/20 transition-all" href="{% url 'registro' %}">
-                Registrar mi Flota
-            </a>
+        <div class="hero-slide absolute inset-0" data-slide>
+            <img alt="Auto electrico moderno en carretera nocturna" class="absolute inset-0 w-full h-full object-cover" src="https://images.pexels.com/photos/13861/pexels-photo-13861.jpeg?auto=compress&cs=tinysrgb&w=2000"/>
+            <div class="absolute inset-0 hero-gradient"></div>
+            <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-4 max-w-5xl mx-auto">
+                <span class="text-secondary-container font-headline font-bold tracking-[0.3em] uppercase text-sm mb-6">2026 Fleet Intelligence</span>
+                <h1 class="text-6xl md:text-8xl font-headline font-extrabold text-white mb-8 tracking-tighter leading-none">
+                    Movilidad sin fronteras
+                </h1>
+                <p class="text-xl text-surface-variant max-w-2xl font-light mb-12 leading-relaxed">
+                    El fin de la burocracia manual y el inicio del alquiler inteligente $24/7$.
+                </p>
+                <a class="px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-white rounded-lg font-bold shadow-xl hover:translate-y-[-2px] transition-all" href="#catalogo">
+                    Explorar Vehiculos
+                </a>
+            </div>
+        </div>
+        <div class="hero-slide absolute inset-0 hidden" data-slide>
+            <img alt="Conductor urbano usando app de alquiler" class="absolute inset-0 w-full h-full object-cover" src="https://images.pexels.com/photos/1719649/pexels-photo-1719649.jpeg?auto=compress&cs=tinysrgb&w=2000"/>
+            <div class="absolute inset-0 hero-gradient"></div>
+            <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-4 max-w-5xl mx-auto">
+                <span class="text-secondary-container font-headline font-bold tracking-[0.3em] uppercase text-sm mb-6">Para el Cliente</span>
+                <h2 class="text-6xl md:text-8xl font-headline font-extrabold text-white mb-8 tracking-tighter leading-none">
+                    Alquila en segundos
+                </h2>
+                <p class="text-xl text-surface-variant max-w-2xl font-light mb-12 leading-relaxed">
+                    Reserva inmediata, pagos automatizados y un historial de alquileres con valoraciones claras.
+                </p>
+                <a class="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-lg font-bold hover:bg-white/20 transition-all" href="{% url 'login' %}">
+                    Ver experiencia cliente
+                </a>
+            </div>
+        </div>
+        <div class="hero-slide absolute inset-0 hidden" data-slide>
+            <img alt="SUV moderno en ciudad" class="absolute inset-0 w-full h-full object-cover" src="https://images.pexels.com/photos/210019/pexels-photo-210019.jpeg?auto=compress&cs=tinysrgb&w=2000"/>
+            <div class="absolute inset-0 hero-gradient"></div>
+            <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-4 max-w-5xl mx-auto">
+                <span class="text-secondary-container font-headline font-bold tracking-[0.3em] uppercase text-sm mb-6">Para el Socio</span>
+                <h2 class="text-6xl md:text-8xl font-headline font-extrabold text-white mb-8 tracking-tighter leading-none">
+                    Tu flota, tu negocio
+                </h2>
+                <p class="text-xl text-surface-variant max-w-2xl font-light mb-12 leading-relaxed">
+                    Registra, gestiona y monetiza tus vehiculos de forma directa y segura.
+                </p>
+                <a class="px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-white rounded-lg font-bold shadow-xl hover:translate-y-[-2px] transition-all" href="{% url 'registro' %}">
+                    Registrar mi flota
+                </a>
+            </div>
         </div>
     </div>
-    <div class="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-4 z-20">
-        <div class="w-12 h-1 bg-white rounded-full"></div>
-        <div class="w-12 h-1 bg-white/30 rounded-full"></div>
-        <div class="w-12 h-1 bg-white/30 rounded-full"></div>
+    <div class="absolute bottom-14 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+        <button class="rounded-full border border-white/40 px-3 py-2 text-white hover:border-white" type="button" data-carousel-prev aria-label="Anterior">
+            <span class="material-symbols-outlined text-base">chevron_left</span>
+        </button>
+        <div class="flex gap-3" role="tablist" aria-label="Hero slides">
+            <button class="h-1.5 w-12 rounded-full bg-white" type="button" data-carousel-dot data-index="0" aria-current="true"></button>
+            <button class="h-1.5 w-12 rounded-full bg-white/30" type="button" data-carousel-dot data-index="1" aria-current="false"></button>
+            <button class="h-1.5 w-12 rounded-full bg-white/30" type="button" data-carousel-dot data-index="2" aria-current="false"></button>
+        </div>
+        <button class="rounded-full border border-white/40 px-3 py-2 text-white hover:border-white" type="button" data-carousel-next aria-label="Siguiente">
+            <span class="material-symbols-outlined text-base">chevron_right</span>
+        </button>
     </div>
 </section>
 
