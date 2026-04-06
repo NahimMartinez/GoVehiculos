@@ -28,7 +28,7 @@ class Modelo(models.Model):
     marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return self.nombre + " - " + self.marca.nombre
+        return self.marca.nombre + " - " + self.nombre
 
 class Vehiculo(models.Model):
     matricula = models.CharField(max_length=25, unique=True)
