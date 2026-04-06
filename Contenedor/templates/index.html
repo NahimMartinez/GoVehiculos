@@ -171,4 +171,17 @@
         </div>
     </div>
 </section>
+
+<section class="bg-inverse-surface py-16">
+    <div class="max-w-screen-2xl mx-auto flex flex-col md:flex-row items-center md:items-center justify-between gap-6 px-8 text-inverse-on-surface">
+        <div>
+            <h2 class="text-2xl font-headline font-extrabold">Listo para una movilidad mas inteligente</h2>
+            <p class="text-sm text-surface-variant">Activa tu cuenta y empieza a reservar hoy.</p>
+        </div>
+        <div class="flex gap-4">
+            <a class="px-6 py-3 bg-white text-slate-900 font-bold rounded-full shadow-sm hover:bg-slate-100" href="{% url 'registro' %}">Crear cuenta</a>
+            <a class="px-6 py-3 border border-outline-variant/60 text-inverse-on-surface font-bold rounded-full hover:border-outline-variant" href="{% url 'login' %}">Iniciar sesion</a>
+        </div>
+    </div>
+</section>
 {% endblock %}
