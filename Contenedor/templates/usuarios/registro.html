@@ -1,27 +1,100 @@
 {% extends 'base.html' %}
 
 {% block contenido %}
-<div class="contenedor-principal">
-    <h2>Crear una cuenta nueva</h2>
-    <p>Completá tus datos para unirte a GoVehiculos.</p>
+<section class="bg-surface px-4 py-16">
+    <div class="mx-auto w-full max-w-2xl rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-8 shadow-sm">
+        <div class="space-y-3 text-center">
+            <h1 class="text-2xl font-headline font-extrabold text-on-surface">Crear una cuenta nueva</h1>
+            <p class="text-sm text-on-surface-variant">Completa tus datos para unirte a GoVehiculos.</p>
+        </div>
 
-    <form method="POST" action="">
-        {% csrf_token %}
-        
         {% if form.non_field_errors %}
-            <div class="errores">
+            <div class="mt-6 rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">
                 {% for error in form.non_field_errors %}
                     <p>{{ error }}</p>
                 {% endfor %}
             </div>
         {% endif %}
-        
-        {{ form.as_p }}
-        
-        <button type="submit" class="btn-principal">Registrarme</button>
-    </form>
-    <div class="opciones-extra">
-        <p>¿Ya tenés una cuenta? <a href="{% url 'login' %}">Iniciá sesión acá</a></p>
+
+        <form method="POST" action="" class="mt-8 space-y-6">
+            {% csrf_token %}
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <div class="space-y-2">
+                    <label for="{{ form.first_name.id_for_label }}" class="text-xs font-bold uppercase text-outline">Nombre</label>
+                    {{ form.first_name }}
+                    {% for error in form.first_name.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-2">
+                    <label for="{{ form.last_name.id_for_label }}" class="text-xs font-bold uppercase text-outline">Apellido</label>
+                    {{ form.last_name }}
+                    {% for error in form.last_name.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <div class="space-y-2">
+                    <label for="{{ form.email.id_for_label }}" class="text-xs font-bold uppercase text-outline">Email</label>
+                    {{ form.email }}
+                    {% for error in form.email.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-2">
+                    <label for="{{ form.dni.id_for_label }}" class="text-xs font-bold uppercase text-outline">DNI</label>
+                    {{ form.dni }}
+                    {% for error in form.dni.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <div class="space-y-2">
+                    <label for="{{ form.username.id_for_label }}" class="text-xs font-bold uppercase text-outline">Usuario</label>
+                    {{ form.username }}
+                    {% for error in form.username.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-2">
+                    <label for="{{ form.rol.id_for_label }}" class="text-xs font-bold uppercase text-outline">Rol</label>
+                    {{ form.rol }}
+                    {% for error in form.rol.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <div class="space-y-2">
+                    <label for="{{ form.password1.id_for_label }}" class="text-xs font-bold uppercase text-outline">Contrasena</label>
+                    {{ form.password1 }}
+                    {% for error in form.password1.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div class="space-y-2">
+                    <label for="{{ form.password2.id_for_label }}" class="text-xs font-bold uppercase text-outline">Repetir contrasena</label>
+                    {{ form.password2 }}
+                    {% for error in form.password2.errors %}
+                        <p class="text-xs text-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="w-full rounded-lg bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-sm hover:bg-primary-container">
+                Registrarme
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-on-surface-variant">
+            ¿Ya tenes una cuenta? <a class="font-semibold text-primary hover:text-primary-container" href="{% url 'login' %}">Inicia sesion aca</a>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}

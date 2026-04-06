@@ -1,54 +1,32 @@
-/*  Importamos la fuente Inter desde Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-/*  Definimos nuestras variables para paleta de colores globales */
+/* Global styles are intentionally minimal; Tailwind provides most styling. */
 :root {
-    /* Paleta de Colores */
-    --color-primario: #2563eb;    /* Azul principal para botones y enlaces */
-    --color-primario-hover: #1d4ed8; /* Azul un poco más oscuro para cuando pasas el mouse */
-    
-    --color-secundario: #1e293b;  /* Gris muy oscuro para el Navbar o Footer */
-    --color-acento: #10b981;      /* Verde para acciones de éxito (ej: Reserva confirmada) */
-    --color-peligro: #ef4444;     /* Rojo para errores o botón de cerrar sesión */
-    
-    --color-fondo: #f8fafc;       /* Gris súper clarito para el fondo de la web */
-    --color-texto: #334155;       /* Gris oscuro para los párrafos comunes */
-    --color-blanco: #ffffff;      /* Blanco puro para las tarjetas de los vehículos */
-
-    /* Tipografía */
-    --fuente-principal: 'Inter', sans-serif;
+    color-scheme: light;
 }
 
-/* Reseteo universal para que todos los navegadores se vean igual */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
-/* Reglas básicas a todo el cuerpo de la página */
-body {
-    font-family: var(--fuente-principal);
-    background-color: var(--color-fondo);
-    color: var(--color-texto);
-    line-height: 1.6; /* Mejora la lectura de los textos */
-
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh; /* Obliga al body a medir como mínimo el 100% de la pantalla */
+.glass-nav {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
 }
 
-.contenido-principal {
-    flex-grow: 1; /* Esto empuja al footer hacia abajo de todo */
+.hero-gradient {
+    background: linear-gradient(to bottom, rgba(25, 27, 35, 0.4), rgba(25, 27, 35, 0.8));
 }
 
-/* Estilo general para todos los enlaces */
-a {
-    text-decoration: none;
-    color: var(--color-primario);
-    transition: color 0.3s ease;
+.tonal-transition {
+    transition: background-color 0.3s ease;
 }
 
-a:hover {
-    color: var(--color-primario-hover);
+.mega-menu {
+    display: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+}
+
+.group:hover .mega-menu,
+.group:focus-within .mega-menu {
+    display: grid;
 }

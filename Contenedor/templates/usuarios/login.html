@@ -1,34 +1,40 @@
 {% extends 'base.html' %}
 
 {% block contenido %}
-<div class="contenedor-principal">
-    <h2>Iniciar Sesión</h2>
-    <p>Ingresá tus credenciales para acceder a GoVehiculos.</p>
-
-    {% if error %}
-        <div class="errores">
-            <p>{{ error }}</p>
+<section class="bg-surface px-4 py-16">
+    <div class="mx-auto w-full max-w-md rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-8 shadow-sm">
+        <div class="space-y-3 text-center">
+            <h1 class="text-2xl font-headline font-extrabold text-on-surface">Iniciar sesion</h1>
+            <p class="text-sm text-on-surface-variant">Ingresa tus credenciales para acceder a GoVehiculos.</p>
         </div>
-    {% endif %}
 
-    <form method="POST" action="">
-        {% csrf_token %}
-        
-        <div>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        
-        <div>
-            <label for="password">Contraseña:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        
-        <button type="submit" class="btn-principal">Iniciar Sesión</button>
-    </form>
+        {% if error %}
+            <div class="mt-6 rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">
+                {{ error }}
+            </div>
+        {% endif %}
 
-    <div class="opciones-extra">
-        <p>¿No tenés una cuenta? <a href="{% url 'registro' %}">Registrate acá</a></p>
+        <form method="POST" action="" class="mt-8 space-y-6">
+            {% csrf_token %}
+
+            <div class="space-y-2">
+                <label for="email" class="text-xs font-bold uppercase text-outline">Email</label>
+                <input class="w-full bg-surface-container-high border-none rounded-lg focus:ring-2 focus:ring-primary" type="email" id="email" name="email" placeholder="tu@email.com" autocomplete="email" required>
+            </div>
+
+            <div class="space-y-2">
+                <label for="password" class="text-xs font-bold uppercase text-outline">Contrasena</label>
+                <input class="w-full bg-surface-container-high border-none rounded-lg focus:ring-2 focus:ring-primary" type="password" id="password" name="password" placeholder="Tu contrasena" autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="w-full rounded-lg bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-sm hover:bg-primary-container">
+                Iniciar sesion
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-on-surface-variant">
+            ¿No tenes una cuenta? <a class="font-semibold text-primary hover:text-primary-container" href="{% url 'registro' %}">Registrate aca</a>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}
