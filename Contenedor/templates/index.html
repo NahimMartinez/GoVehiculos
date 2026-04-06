@@ -70,61 +70,53 @@
 </section>
 
 <section id="catalogo" class="py-24 bg-surface px-8">
-    <div class="max-w-screen-2xl mx-auto">
-        <div class="flex justify-between items-end mb-16">
-            <h2 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Vehículos destacados</h2>
-            <div class="flex gap-2">
-                <span class="px-4 py-2 bg-surface-container-high rounded-full text-sm font-semibold">SUV</span>
-                <span class="px-4 py-2 bg-primary text-white rounded-full text-sm font-semibold">Electric</span>
-                <span class="px-4 py-2 bg-surface-container-high rounded-full text-sm font-semibold">Luxury</span>
+    <div class="max-w-screen-2xl mx-auto mb-10">
+        <h2 class="text-3xl md:text-4xl font-headline font-extrabold text-on-surface tracking-tight">Vehiculos Destacados</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+    {% for vehiculo in vehiculos_destacados %}
+    <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500">
+        <div class="relative h-64 overflow-hidden bg-slate-200">
+            {% if vehiculo.imagen %}
+            <img src="{{ vehiculo.imagen.url }}" alt="{{ vehiculo.modelo }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/>
+            {% else %}
+            <div class="w-full h-full flex justify-center items-center text-slate-400 group-hover:scale-105 transition-transform duration-700">
+                <span class="material-symbols-outlined text-6xl">directions_car</span>
+            </div>
+            {% endif %}
+            
+            <div class="absolute top-4 left-4 bg-tertiary text-white px-3 py-1 rounded-full text-xs font-bold uppercase">
+                {{ vehiculo.estado_vehiculo }} </div>
+            
+            <div class="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold">
+                {{ vehiculo.num_reservas }} reservas
             </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500">
-                <div class="relative h-64 overflow-hidden">
-                    <img alt="Luxury Black SUV" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="High-end black SUV parked in a modern architectural driveway with sleek grey concrete and sunlight shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxafKankNJlz2a6ax4AuZqLzwjeipvrIY0TFWBtrdilNm1EuFembQj19AAbfY4u1F9oQOTcA2pphwW42xajIUnncE2cnVjAbc69S10USDXv1-X21yRPsILUvmIyb3hj7vBwl6zA-vZ3LsNorVTtwxdhra5rwfvobGftfHZ92xPOKbu-KYuwbEfADP-cG2perjKiOsjVMbJn8Rhyd5580TWwNMEDTl_jWYBvXqv9UKGD5aexsh92CKb1dy8LH4-WRKoizlEdo4cCUM"/>
-                    <div class="absolute top-4 left-4 bg-tertiary text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Disponible</div>
-                </div>
-                <div class="p-8">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-headline font-bold">LuxeDrive Explorer X1</h3>
-                        <span class="text-primary font-bold">$120<small class="text-on-surface-variant font-normal">/dia</small></span>
-                    </div>
-                    <div class="flex gap-4 mb-8 text-on-surface-variant text-sm">
-                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">ev_station</span> Electric</span>
-                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">airline_seat_recline_normal</span> 5 Asientos</span>
-                    </div>
-                    <button class="w-full py-4 bg-surface-container-high text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors" type="button">
-                        Reservar ahora
-                    </button>
-                </div>
+        <div class="p-8">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-headline font-bold capitalize">{{ vehiculo.modelo }}</h3>
+                <span class="text-primary font-bold">${{ vehiculo.precio_x_dia }}<small class="text-on-surface-variant font-normal">/dia</small></span>
             </div>
-            <div class="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/10">
-                <div class="w-full h-48 bg-slate-200 animate-pulse rounded-lg mb-6"></div>
-                <div class="h-6 w-3/4 bg-slate-200 animate-pulse rounded mb-4"></div>
-                <div class="h-4 w-1/2 bg-slate-200 animate-pulse rounded mb-8"></div>
-                <div class="h-12 w-full bg-slate-200 animate-pulse rounded-lg"></div>
+            <div class="flex gap-4 mb-8 text-on-surface-variant text-sm">
+                <span class="flex items-center gap-1 capitalize">
+                    <span class="material-symbols-outlined text-sm">category</span> {{ vehiculo.tipo_vehiculo }}
+                </span>
+                <span class="flex items-center gap-1 uppercase">
+                    <span class="material-symbols-outlined text-sm">pin</span> {{ vehiculo.matricula }}
+                </span>
             </div>
-            <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500">
-                <div class="relative h-64 overflow-hidden">
-                    <img alt="Blue sport sedan" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Blue luxury sports sedan driving fast on a mountain road at sunrise with motion blur and warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcb466W5Lcq48N6Y8cymqfyTMa-v6x6MUKWU4KoFCZhljqZUTxYvuC-yXxQrXwJlXV_6-MhynVm8gbzO-LPjGkDFRItR16eCQg0QSAcOS00TSiqiQA3WHjA_l-ecnM4TrekTP_R-qr-GfobbiRktrxIggG03cAJhIQOgs6DQTaL9xnITUg0SmW4xO4bI5QUM8Y0GeJXZC-CaBg5WwY3TiPsbwP35h54hiqI7kD39my9Ma6Ai99UYm75zibbDJjFnWciynHPkKHj_Y"/>
-                </div>
-                <div class="p-8">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-headline font-bold">Velocity GT-S</h3>
-                        <span class="text-primary font-bold">$185<small class="text-on-surface-variant font-normal">/dia</small></span>
-                    </div>
-                    <div class="flex gap-4 mb-8 text-on-surface-variant text-sm">
-                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">speed</span> 320km Range</span>
-                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">settings_input_component</span> Autopilot</span>
-                    </div>
-                    <button class="w-full py-4 bg-surface-container-high text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors" type="button">
-                        Reservar ahora
-                    </button>
-                </div>
-            </div>
+            <a href="#" class="block text-center w-full py-4 bg-surface-container-high text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                Reservar ahora
+            </a>
         </div>
     </div>
+    {% empty %}
+    <div class="col-span-3 text-center py-12 text-surface-variant">
+        <span class="material-symbols-outlined text-4xl mb-2">no_crash</span>
+        <p>Aún no hay vehículos destacados disponibles.</p>
+    </div>
+    {% endfor %}
+</div>
 </section>
 
 {% if not user.is_authenticated %}
