@@ -1,1 +1,60 @@
-<!-- Mis vehiculos -->
+{% extends 'base.html' %}
+
+{% block title %}Mis Vehículos | GoVehiculos{% endblock %}
+
+{% block contenido %}
+<section class="py-24 bg-surface px-8">
+    <div class="max-w-screen-2xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-headline font-extrabold text-on-surface tracking-tight">Mi Flota</h1>
+            <p class="text-surface-variant mt-2">Gestioná los vehículos que tenés publicados en la plataforma.</p>
+        </div>
+        <a href="#" class="px-6 py-2 bg-primary text-white font-bold rounded-lg shadow hover:bg-primary-container transition-colors">
+            + Nuevo Vehículo
+        </a>
+    </div>
+
+    <div class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+        {% for vehiculo in mis_vehiculos %}
+        <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-outline-variant/20 flex flex-col">
+            <div class="relative h-56 bg-slate-200">
+                {% if vehiculo.imagen %}
+                    <img src="{{ vehiculo.imagen.url }}" alt="{{ vehiculo.modelo }}" class="w-full h-full object-cover">
+                {% else %}
+                    <div class="w-full h-full flex justify-center items-center text-slate-400">
+                        <span class="material-symbols-outlined text-5xl">directions_car</span>
+                    </div>
+                {% endif %}
+                <div class="absolute top-4 left-4 bg-tertiary text-white px-3 py-1 rounded-full text-xs font-bold uppercase">
+                    {{ vehiculo.estado_vehiculo }}
+                </div>
+            </div>
+            
+            <div class="p-6 flex flex-col flex-grow">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-xl font-headline font-bold capitalize">{{ vehiculo.modelo }}</h3>
+                    <span class="text-primary font-bold">${{ vehiculo.precio_x_dia }}<small>/día</small></span>
+                </div>
+                
+                <div class="text-sm text-on-surface-variant mb-6 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">pin</span> {{ vehiculo.matricula|upper }}
+                </div>
+                
+                <div class="mt-auto flex gap-2 pt-4 border-t border-outline-variant/20">
+                    <button class="flex-1 text-center py-2 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
+                        Editar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% empty %}
+        <div class="col-span-1 md:col-span-3 text-center py-20 bg-surface-container-lowest rounded-xl border border-outline-variant/20">
+            <span class="material-symbols-outlined text-6xl text-outline mb-4">garage</span>
+            <h3 class="text-xl font-bold text-on-surface mb-2">Tu flota está vacía</h3>
+            <p class="text-on-surface-variant mb-6">Empezá a monetizar sumando tu primer vehículo a la plataforma.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
