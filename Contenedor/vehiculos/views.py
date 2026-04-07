@@ -2,12 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from vehiculos.models import Vehiculo
 from django.db.models import Count
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from reservas.models import Reserva
 from .forms import VehiculoForm
 
 # Create your views here.
 def index(request):
     # Traemos los 6 vehiculos mas reservados (vehiculos destacados)
-    vehiculos = Vehiculo.objects.annotate(num_reservas=Count('reserva')).order_by('-num_reservas')[:6]
+    vehiculos = Vehiculo.objects.filter(activo=True).annotate(num_reservas=Count('reserva')).order_by('-num_reservas')[:6]
 
     contexto = {
         'vehiculos_destacados': vehiculos
@@ -24,14 +27,34 @@ def mis_vehiculos_view(request):
     
     if vehiculo_id:
         # Obtener el vehículo y verificar que pertenece al usuario actual
-        vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user)
+        vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user, activo=True)
     
     # El usuario envió el formulario desde la modal
     if request.method == 'POST':
+        accion = request.POST.get('accion')
+
+        if accion == 'eliminar':
+            vehiculo_id = request.POST.get('vehiculo_id')
+            vehiculo_a_eliminar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user, activo=True)
+
+            hay_reservas_futuras = Reserva.objects.filter(
+                vehiculo=vehiculo_a_eliminar,
+                fecha_fin__gte=timezone.now().date()
+            ).exists()
+
+            if hay_reservas_futuras:
+                messages.error(request, 'No se puede eliminar el vehículo porque tiene reservas vigentes o futuras.')
+                return redirect('mis_vehiculos')
+
+            vehiculo_a_eliminar.activo = False
+            vehiculo_a_eliminar.save(update_fields=['activo'])
+            messages.success(request, 'Vehículo eliminado correctamente.')
+            return redirect('mis_vehiculos')
+
         # Si viene ID oculto, estamos editando
         vehiculo_id = request.POST.get('vehiculo_id')
         if vehiculo_id:
-            vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user)
+            vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user, activo=True)
             form = VehiculoForm(request.POST, request.FILES, instance=vehiculo_a_editar)
         else:
             # Es creación: nuevo vehículo
@@ -57,7 +80,7 @@ def mis_vehiculos_view(request):
             form = VehiculoForm()
 
     # Filtramos los vehículos del dueño actual
-    vehiculos_del_socio = Vehiculo.objects.filter(duenio=request.user)
+    vehiculos_del_socio = Vehiculo.objects.filter(duenio=request.user, activo=True)
     
     contexto = {
         'mis_vehiculos': vehiculos_del_socio,

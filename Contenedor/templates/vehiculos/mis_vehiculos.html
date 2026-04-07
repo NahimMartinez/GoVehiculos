@@ -44,6 +44,15 @@
                     <a href="?edit={{ vehiculo.id }}" class="flex-1 text-center py-2 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
                         Editar
                     </a>
+                    <button
+                        type="button"
+                        class="flex-1 text-center py-2 border-2 border-red-500 text-red-500 font-bold rounded-lg hover:bg-red-500 hover:text-white transition-colors btn-eliminar"
+                        data-vehiculo-id="{{ vehiculo.id }}"
+                        data-vehiculo-nombre="{{ vehiculo.modelo }}"
+                        data-vehiculo-matricula="{{ vehiculo.matricula|upper }}"
+                    >
+                        Eliminar
+                    </button>
                 </div>
             </div>
         </div>
@@ -106,24 +115,80 @@
     </div>
 </div>
 
+<div id="modal-eliminar-vehiculo" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-outline-variant/20">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Confirmar eliminación</h3>
+            <button type="button" id="cerrar-modal-eliminar" class="text-slate-400 hover:text-red-500 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="px-6 py-5">
+            <p class="text-slate-700 dark:text-slate-300 mb-2">Estás por quitar este vehículo de tu flota visible.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400" id="texto-vehiculo-eliminar"></p>
+        </div>
+
+        <form method="POST" action="{% url 'mis_vehiculos' %}" class="px-6 pb-6 flex justify-end gap-3">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="eliminar">
+            <input type="hidden" name="vehiculo_id" id="input-vehiculo-id-eliminar">
+            <button type="button" id="cancelar-eliminar" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
+                Cancelar
+            </button>
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
+                Sí, eliminar
+            </button>
+        </form>
+    </div>
+</div>
+
 <script>
-    // Abrir la modal automáticamente si:
-    // 1. Estamos editando un vehículo
-    // Abrir la modal automáticamente si:
-    // 1. Estamos editando un vehículo
-    // 2. El formulario tiene errores de validación
     document.addEventListener('DOMContentLoaded', function() {
+        // Referencias a elementos de la modal de alta/edicion.
         const form = document.getElementById('form-vehiculo');
         const modal = document.getElementById('modal-vehiculo');
         const esEdicion = {% if vehiculo_a_editar %}true{% else %}false{% endif %};
-        
-        // Verificar si hay errores en el formulario
+
+        // Si hay errores de validacion o estamos editando, mantener la modal abierta.
         const hayErrores = form.querySelectorAll('.text-red-500').length > 0;
-        
-        // Abrir modal si estamos editando o si hay errores
         if (hayErrores || esEdicion) {
             modal.classList.remove('hidden');
         }
+
+        // Referencias a elementos de la modal de confirmacion de eliminacion.
+        const modalEliminar = document.getElementById('modal-eliminar-vehiculo');
+        const inputVehiculoId = document.getElementById('input-vehiculo-id-eliminar');
+        const textoVehiculo = document.getElementById('texto-vehiculo-eliminar');
+        const cerrarModalEliminar = document.getElementById('cerrar-modal-eliminar');
+        const cancelarEliminar = document.getElementById('cancelar-eliminar');
+
+        // Cada boton "Eliminar" carga los datos del vehiculo seleccionado y abre la modal.
+        document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                inputVehiculoId.value = btn.dataset.vehiculoId;
+                textoVehiculo.textContent = btn.dataset.vehiculoNombre + ' - ' + btn.dataset.vehiculoMatricula;
+                modalEliminar.classList.remove('hidden');
+            });
+        });
+
+        // Cierra la modal y limpia datos para evitar arrastrar seleccion anterior.
+        function cerrarModal() {
+            modalEliminar.classList.add('hidden');
+            inputVehiculoId.value = '';
+            textoVehiculo.textContent = '';
+        }
+
+        // Cierre por botones explicitos.
+        cerrarModalEliminar.addEventListener('click', cerrarModal);
+        cancelarEliminar.addEventListener('click', cerrarModal);
+
+        // Cierre haciendo click fuera del panel.
+        modalEliminar.addEventListener('click', function(event) {
+            if (event.target === modalEliminar) {
+                cerrarModal();
+            }
+        });
     });
 </script>
 {% endblock %}
