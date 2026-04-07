@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from PIL import Image
+from django.core.validators import MaxLengthValidator, MinValueValidator, MaxValueValidator, MinLengthValidator
 # Create your models here.
 class EstadoVehiculo(models.Model):
     nombre = models.CharField(max_length=30)
@@ -31,8 +32,8 @@ class Modelo(models.Model):
         return self.marca.nombre + " - " + self.nombre
 
 class Vehiculo(models.Model):
-    matricula = models.CharField(max_length=25, unique=True)
-    precio_x_dia = models.DecimalField(max_digits=10, decimal_places=2)
+    matricula = models.CharField(max_length=25, unique=True, validators=[MinLengthValidator(3), MaxLengthValidator(25)])
+    precio_x_dia = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     imagen = models.ImageField(upload_to='vehiculos/', null=True, blank=True)
 
     # Relaciones
