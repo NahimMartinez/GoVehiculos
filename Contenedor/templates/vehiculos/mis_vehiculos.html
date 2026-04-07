@@ -41,9 +41,9 @@
                 </div>
                 
                 <div class="mt-auto flex gap-2 pt-4 border-t border-outline-variant/20">
-                    <button class="flex-1 text-center py-2 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
+                    <a href="?edit={{ vehiculo.id }}" class="flex-1 text-center py-2 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
                         Editar
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -63,49 +63,67 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
 
         <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Registrar nuevo vehículo</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white" id="modal-title">
+                {% if vehiculo_a_editar %}Editar vehículo{% else %}Registrar nuevo vehículo{% endif %}
+            </h3>
             <button onclick="document.getElementById('modal-vehiculo').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <form method="POST" action="{% url 'mis_vehiculos' %}" enctype="multipart/form-data" class="overflow-y-auto p-6 flex flex-col gap-4">
+        <form method="POST" action="{% url 'mis_vehiculos' %}" enctype="multipart/form-data" class="overflow-y-auto p-6 flex flex-col gap-4" id="form-vehiculo">
             {% csrf_token %}
-
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Matrícula</label>
-                {{ form.matricula }}
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Precio por Día ($)</label>
-                {{ form.precio_x_dia }}
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Vehículo</label>
-                {{ form.tipo_vehiculo }}
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Marca y Modelo</label>
-                {{ form.modelo }}
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Estado</label>
-                {{ form.estado_vehiculo }}
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Foto del Vehículo</label>
-                {{ form.imagen }}
-            </div>
+                        {% if vehiculo_a_editar %}
+                            <input type="hidden" name="vehiculo_id" value="{{ vehiculo_a_editar.id }}">
+                        {% endif %}
+            
+            
+            {% for field in form %}
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-red-500 text-sm mt-1 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                            {% for error in field.errors %}
+                                <p>• {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
 
             <div class="mt-4 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button type="button" onclick="document.getElementById('modal-vehiculo').classList.add('hidden')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
                     Cancelar
                 </button>
                 <button type="submit" class="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                    Guardar Vehículo
+                    {% if vehiculo_a_editar %}Actualizar Vehículo{% else %}Guardar Vehículo{% endif %}
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    // Abrir la modal automáticamente si:
+    // 1. Estamos editando un vehículo
+    // Abrir la modal automáticamente si:
+    // 1. Estamos editando un vehículo
+    // 2. El formulario tiene errores de validación
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('form-vehiculo');
+        const modal = document.getElementById('modal-vehiculo');
+        const esEdicion = {% if vehiculo_a_editar %}true{% else %}false{% endif %};
+        
+        // Verificar si hay errores en el formulario
+        const hayErrores = form.querySelectorAll('.text-red-500').length > 0;
+        
+        // Abrir modal si estamos editando o si hay errores
+        if (hayErrores || esEdicion) {
+            modal.classList.remove('hidden');
+        }
+    });
+</script>
 {% endblock %}
