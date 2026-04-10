@@ -60,15 +60,16 @@
                             <button class="text-slate-400 hover:text-blue-600 font-medium text-sm transition-colors">
                                 Editar
                             </button>
-                            
-                            {% if u.is_active %}
-                                <button class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
-                                    Suspender
-                                </button>
-                            {% else %}
-                                <button class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
-                                    Reactivar
-                                </button>
+                            {% if u != user%}
+                                {% if u.is_active %}
+                                    <button class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
+                                        Suspender
+                                    </button>
+                                {% else %}
+                                    <button class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
+                                        Reactivar
+                                    </button>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
