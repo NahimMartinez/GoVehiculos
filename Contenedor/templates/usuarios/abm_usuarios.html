@@ -62,13 +62,19 @@
                             </a>
                             {% if u != user%}
                                 {% if u.is_active %}
-                                    <button class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
-                                        Suspender
-                                    </button>
+                                    <form method="post" action="{% url 'suspender_usuario' u.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
+                                            Suspender
+                                        </button>
+                                    </form>
                                 {% else %}
-                                    <button class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
-                                        Reactivar
-                                    </button>
+                                    <form method="post" action="{% url 'reactivar_usuario' u.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
+                                            Reactivar
+                                        </button>
+                                    </form>
                                 {% endif %}
                             {% endif %}
                         </td>

@@ -87,3 +87,23 @@ def editar_usuario_view(request, usuario_id):
         'form': form,
         'usuario': usuario,
     })
+
+
+def suspender_usuario_view(request, usuario_id):
+    usuario = get_object_or_404(Usuario, id=usuario_id, is_superuser=False)
+
+    if request.method == 'POST' and usuario != request.user:
+        usuario.is_active = False
+        usuario.save(update_fields=['is_active'])
+
+    return redirect('abm_usuarios')
+
+
+def reactivar_usuario_view(request, usuario_id):
+    usuario = get_object_or_404(Usuario, id=usuario_id, is_superuser=False)
+
+    if request.method == 'POST' and usuario != request.user:
+        usuario.is_active = True
+        usuario.save(update_fields=['is_active'])
+
+    return redirect('abm_usuarios')
