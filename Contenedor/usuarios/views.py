@@ -2,10 +2,10 @@
 from rest_framework import viewsets
 from .serializer import UsuarioSerializer
 from .models import Usuario
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from django.contrib.auth import authenticate, login, logout
-from .forms import RegistroUsuarioForm
+from .forms import RegistroUsuarioForm, EditarUsuarioForm
 
 # Create your views here.
 
@@ -22,14 +22,11 @@ def registro_view(request):
             
             # 2. Leer que rol eligio en el formulario
             rol_elegido = form.cleaned_data.get('rol')
-            
-            # 3. Agregar en el grupo elegido 
-            if rol_elegido == 'cliente':
-                grupo = Group.objects.get(name='Clientes')
-            else:
-                grupo = Group.objects.get(name='Socios')
-                
-            nuevo_usuario.groups.add(grupo)
+
+            # 3. Agregar al grupo elegido si existe
+            grupo = Group.objects.filter(name=rol_elegido).first()
+            if grupo:
+                nuevo_usuario.groups.add(grupo)
             
             return redirect('login') # Mandar a iniciar sesión
     else:
@@ -66,3 +63,27 @@ def abm_usuarios_view(request):
     }
 
     return render(request, 'usuarios/abm_usuarios.html', contexto)
+
+
+def editar_usuario_view(request, usuario_id):
+    usuario = get_object_or_404(Usuario, id=usuario_id, is_superuser=False)
+
+    if request.method == 'POST':
+        form = EditarUsuarioForm(request.POST, instance=usuario)
+        if form.is_valid():
+            usuario_actualizado = form.save()
+            rol_elegido = form.cleaned_data.get('rol')
+            grupo = Group.objects.filter(name=rol_elegido).first()
+
+            usuario_actualizado.groups.clear()
+            if grupo:
+                usuario_actualizado.groups.add(grupo)
+
+            return redirect('abm_usuarios')
+    else:
+        form = EditarUsuarioForm(instance=usuario)
+
+    return render(request, 'usuarios/editar_usuario.html', {
+        'form': form,
+        'usuario': usuario,
+    })

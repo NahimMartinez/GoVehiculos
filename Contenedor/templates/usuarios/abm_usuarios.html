@@ -57,9 +57,9 @@
                         </td>
                         
                         <td class="p-5 text-right flex justify-end gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <button class="text-slate-400 hover:text-blue-600 font-medium text-sm transition-colors">
+                            <a href="{% url 'editar_usuario' u.id %}" class="text-slate-400 hover:text-blue-600 font-medium text-sm transition-colors">
                                 Editar
-                            </button>
+                            </a>
                             {% if u != user%}
                                 {% if u.is_active %}
                                     <button class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
