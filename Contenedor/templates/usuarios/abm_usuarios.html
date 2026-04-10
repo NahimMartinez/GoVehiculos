@@ -64,14 +64,32 @@
                                 {% if u.is_active %}
                                     <form method="post" action="{% url 'suspender_usuario' u.id %}">
                                         {% csrf_token %}
-                                        <button type="submit" class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
+                                        <button
+                                            type="button"
+                                            class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors"
+                                            data-user-action-trigger
+                                            data-action-url="{% url 'suspender_usuario' u.id %}"
+                                            data-action-title="Dar de baja usuario"
+                                            data-action-message="¿Estás seguro de dar de baja a {{ u.username }}?"
+                                            data-action-verb="dar de baja"
+                                            data-action-user="{{ u.username }}"
+                                        >
                                             Suspender
                                         </button>
                                     </form>
                                 {% else %}
                                     <form method="post" action="{% url 'reactivar_usuario' u.id %}">
                                         {% csrf_token %}
-                                        <button type="submit" class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
+                                        <button
+                                            type="button"
+                                            class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors"
+                                            data-user-action-trigger
+                                            data-action-url="{% url 'reactivar_usuario' u.id %}"
+                                            data-action-title="Dar de alta usuario"
+                                            data-action-message="¿Estás seguro de dar de alta a {{ u.username }}?"
+                                            data-action-verb="dar de alta"
+                                            data-action-user="{{ u.username }}"
+                                        >
                                             Reactivar
                                         </button>
                                     </form>
@@ -92,4 +110,90 @@
         </div>
     </div>
 </section>
+
+<div id="user-action-modal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" data-modal-backdrop></div>
+    <div class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5 text-white">
+            <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+                    <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                    <h2 id="user-action-modal-title" class="text-lg font-bold tracking-tight">Confirmar acción</h2>
+                    <p class="text-sm text-white/70">Revisá antes de continuar</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-6">
+            <p id="user-action-modal-message" class="text-sm leading-6 text-slate-600"></p>
+            <div class="mt-2 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                Esta acción cambiará el estado del usuario de forma inmediata.
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" id="user-action-modal-cancel" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Cancelar
+                </button>
+                <form id="user-action-modal-form" method="post" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" id="user-action-modal-confirm" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                        Confirmar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block head_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('user-action-modal');
+        if (!modal) {
+            return;
+        }
+
+        const modalTitle = document.getElementById('user-action-modal-title');
+        const modalMessage = document.getElementById('user-action-modal-message');
+        const modalForm = document.getElementById('user-action-modal-form');
+        const modalCancel = document.getElementById('user-action-modal-cancel');
+        const modalBackdrop = modal.querySelector('[data-modal-backdrop]');
+        const triggers = document.querySelectorAll('[data-user-action-trigger]');
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        const openModal = ({ url, title, message }) => {
+            modalForm.action = url;
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        triggers.forEach((trigger) => {
+            trigger.addEventListener('click', () => {
+                openModal({
+                    url: trigger.dataset.actionUrl,
+                    title: trigger.dataset.actionTitle,
+                    message: trigger.dataset.actionMessage,
+                });
+            });
+        });
+
+        modalCancel.addEventListener('click', closeModal);
+        modalBackdrop.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}
