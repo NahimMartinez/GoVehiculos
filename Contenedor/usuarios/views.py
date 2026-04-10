@@ -57,3 +57,12 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('inicio')
+
+def abm_usuarios_view(request):
+    usuarios = Usuario.objects.filter(is_superuser=False)
+
+    contexto = {
+        'usuarios': usuarios 
+    }
+
+    return render(request, 'usuarios/abm_usuarios.html', contexto)

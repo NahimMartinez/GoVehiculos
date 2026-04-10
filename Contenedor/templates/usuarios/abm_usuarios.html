@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<section class="py-12 px-6 max-w-7xl mx-auto min-h-screen">
+    <div class="mb-8 border-b border-slate-200 pb-5 flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Panel de Administración</h1>
+            <p class="text-slate-500 mt-2">Gestión de usuarios, clientes y socios del sistema.</p>
+        </div>
+        <a href="{% url 'registro' %}" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+            + Nuevo Usuario
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 text-sm uppercase tracking-wider">
+                        <th class="p-5 font-bold">Usuario</th>
+                        <th class="p-5 font-bold">Email</th>
+                        <th class="p-5 font-bold">Fecha de Registro</th>
+                        <th class="p-5 font-bold">Estado</th>
+                        <th class="p-5 font-bold text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    
+                    {% for u in usuarios %}
+                    <tr class="hover:bg-slate-50 transition-colors group">
+                        
+                        <td class="p-5 font-bold text-slate-800 flex flex-col">
+                            {{ u.username }}
+                            <span class="text-xs font-normal text-slate-500 mt-1">
+                                {% for grupo in u.groups.all %}
+                                    {{ grupo.name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    Cliente sin grupo
+                                {% endfor %}
+                            </span>
+                        </td>
+                        
+                        <td class="p-5 text-slate-600">{{ u.email }}</td>
+                        
+                        <td class="p-5 text-slate-500 text-sm">{{ u.date_joined|date:"d/m/Y" }}</td>
+                        
+                        <td class="p-5">
+                            {% if u.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full"></span> Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span> Suspendido
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="p-5 text-right flex justify-end gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <button class="text-slate-400 hover:text-blue-600 font-medium text-sm transition-colors">
+                                Editar
+                            </button>
+                            
+                            {% if u.is_active %}
+                                <button class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors">
+                                    Suspender
+                                </button>
+                            {% else %}
+                                <button class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors">
+                                    Reactivar
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-10 text-center text-slate-500 bg-slate-50">
+                            No hay usuarios registrados en el sistema.
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
