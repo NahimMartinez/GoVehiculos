@@ -18,6 +18,7 @@ urlpatterns = [
     path('api/', include('usuarios.api_urls')), # URLs exclusivas de la API REST
     path('schema/', schema_view, name='openapi-schema'),
     path('vehiculos/', include('vehiculos.urls')),
+    path('reservas/', include('reservas.urls')),
 ]
 
 

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block contenido %}
+<section class="bg-surface px-4 py-16">
+    <div class="mx-auto w-full max-w-2xl rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-8 shadow-sm">
+        <div class="space-y-3 text-center">
+            <h1 class="text-2xl font-headline font-extrabold text-on-surface">Reserva de vehículo</h1>
+            <p class="text-sm text-on-surface-variant">Formulario estático para registrar una reserva.</p>
+        </div>
+
+        <form method="GET" action="#" class="mt-8 space-y-8">
+            <fieldset class="space-y-6">
+                <legend class="text-sm font-bold uppercase tracking-wide text-outline">Datos del cliente</legend>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="nombre" class="text-xs font-bold uppercase text-outline">Nombre</label>
+                        <input id="nombre" name="nombre" type="text" placeholder="Ej: Juan" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="apellido" class="text-xs font-bold uppercase text-outline">Apellido</label>
+                        <input id="apellido" name="apellido" type="text" placeholder="Ej: Perez" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="dni" class="text-xs font-bold uppercase text-outline">DNI</label>
+                        <input id="dni" name="dni" type="text" placeholder="Ej: 40111222" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="email" class="text-xs font-bold uppercase text-outline">Email</label>
+                        <input id="email" name="email" type="email" placeholder="Ej: cliente@mail.com" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="telefono" class="text-xs font-bold uppercase text-outline">Telefono</label>
+                        <input id="telefono" name="telefono" type="tel" placeholder="Ej: +54 11 5555 1234" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="space-y-6">
+                <legend class="text-sm font-bold uppercase tracking-wide text-outline">Datos de la reserva</legend>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="fecha_retiro" class="text-xs font-bold uppercase text-outline">Fecha de inicio</label>
+                        <input id="fecha_retiro" name="fecha_retiro" type="date" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="fecha_devolucion" class="text-xs font-bold uppercase text-outline">Fecha de fin</label>
+                        <input id="fecha_devolucion" name="fecha_devolucion" type="date" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="space-y-6">
+                <legend class="text-sm font-bold uppercase tracking-wide text-outline">Preferencias</legend>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="metodo_pago" class="text-xs font-bold uppercase text-outline">Metodo de pago</label>
+                        <select id="metodo_pago" name="metodo_pago" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                            <option value="">Seleccionar</option>
+                            <option value="credito">Tarjeta de credito</option>
+                            <option value="debito">Tarjeta de debito</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="efectivo">Efectivo</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="monto_total" class="text-xs font-bold uppercase text-outline">Monto</label>
+                        <input id="monto_total" name="monto_total" type="number" step="0.01" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                    </div>
+                </div>
+
+                <label class="flex items-start gap-3 text-sm text-on-surface">
+                    <input type="checkbox" name="terminos" class="mt-1 h-4 w-4 rounded border-outline-variant/40 text-primary focus:ring-primary" required>
+                    <span>Acepto los terminos y condiciones de la reserva.</span>
+                </label>
+            </fieldset>
+
+            <button type="submit" class="w-full rounded-lg bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-sm hover:bg-primary-container">
+                Confirmar reserva
+            </button>
+        </form>
+    </div>
+</section>
+{% endblock %}

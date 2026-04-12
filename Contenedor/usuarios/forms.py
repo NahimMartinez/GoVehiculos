@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
 import re
-
 from .models import Usuario
 
 
