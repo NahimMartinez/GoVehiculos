@@ -5,13 +5,13 @@ from vehiculos.models import Vehiculo
 
 # Create your models here.
 class EstadoReserva(models.Model):
-    nombre = models.CharField(max_length=25)
+    nombre = models.CharField(max_length=25, unique=True)
 
     def __str__(self):
         return self.nombre
 
 class MetodoPago(models.Model):
-    nombre = models.CharField(max_length=30)
+    nombre = models.CharField(max_length=30, unique=True)
 
     def __str__(self):
         return self.nombre
@@ -24,7 +24,7 @@ class ReservaQuerySet(models.QuerySet):
         return self.filter(
             Q(estado_reserva__nombre__iexact='Pendiente')
             | Q(estado_reserva__nombre__iexact='Confirmada')
-        )
+        ).exclude(estado_reserva__nombre__iexact='Cancelada')
     
 
     # Filtro para obtener reservas que se solapan con un vehículo y un rango de fechas dado. Esto es útil para verificar la disponibilidad de un vehículo antes de crear una nueva reserva. Por ejemplo, si alguien intenta reservar un vehículo del 10 al 15 de junio, este método puede verificar si ya existe una reserva para ese vehículo que se solape con esas fechas (por ejemplo, del 12 al 18 de junio), lo que indicaría que el vehículo no está disponible para el nuevo rango de fechas.
@@ -62,7 +62,7 @@ class Pago(models.Model):
 
     #Relaciones
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.SET_NULL, null=True)
-    reserva = models.ForeignKey(Reserva, on_delete=models.SET_NULL, null=True)
+    reserva = models.OneToOneField(Reserva, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return f'Pago #{self.id}'

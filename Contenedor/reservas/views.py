@@ -36,7 +36,9 @@ def _usuario_es_admin(user):
 
 # Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
 def _obtener_estado(nombre_estado):
-    estado, _ = EstadoReserva.objects.get_or_create(nombre=nombre_estado)
+    estado = EstadoReserva.objects.filter(nombre=nombre_estado).order_by('id').first()
+    if estado is None:
+        estado = EstadoReserva.objects.create(nombre=nombre_estado)
     return estado
 
 # Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado).
@@ -400,6 +402,12 @@ class PagoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        if Pago.objects.filter(reserva=reserva).exists():
+            return Response(
+                {'ok': False, 'mensaje': 'La reserva ya tiene un pago registrado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         with transaction.atomic():
             pago = serializer.save()
 
@@ -437,6 +445,12 @@ class PagoViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+        if reserva_destino and Pago.objects.filter(reserva=reserva_destino).exclude(id=pago.id).exists():
+            return Response(
+                {'ok': False, 'mensaje': 'La reserva destino ya tiene un pago registrado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -463,6 +477,12 @@ class PagoViewSet(viewsets.ModelViewSet):
                     {'ok': False, 'mensaje': 'No puedes asociar el pago a una reserva de otro usuario.'},
                     status=status.HTTP_403_FORBIDDEN,
                 )
+
+        if reserva_destino and Pago.objects.filter(reserva=reserva_destino).exclude(id=pago.id).exists():
+            return Response(
+                {'ok': False, 'mensaje': 'La reserva destino ya tiene un pago registrado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
