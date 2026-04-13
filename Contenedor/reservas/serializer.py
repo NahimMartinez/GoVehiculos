@@ -20,27 +20,6 @@ class ReservaCreateSerializer(serializers.Serializer):
     fecha_inicio = serializers.DateField()
     fecha_fin = serializers.DateField()
 
-# Serializer de escritura administrativa para modificar reservas existentes. Permite editar campos de modelo (incluido estado_reserva) y valida reglas de transición, por ejemplo impedir reactivar una reserva que ya está cancelada.
-class ReservaAdminWriteSerializer(serializers.ModelSerializer):
-    def validate_estado_reserva(self, value):
-        if not self.instance or not self.instance.estado_reserva:
-            return value
-
-        estado_actual = self.instance.estado_reserva.nombre.strip().lower()
-        estado_nuevo = value.nombre.strip().lower()
-
-        # Una reserva cancelada no puede volver a otro estado
-        if estado_actual == 'cancelada' and estado_nuevo in {'pendiente', 'confirmada'}:
-            raise serializers.ValidationError(
-                'No se puede reactivar una reserva cancelada sin una politica explicita.'
-            )
-
-        return value
-
-    class Meta:
-        model = Reserva
-        fields = ('id', 'estado_reserva', 'monto_total', 'fecha_inicio', 'fecha_fin', 'cliente', 'vehiculo')
-
 
 class ReservaSerializer(serializers.ModelSerializer):
     estado = serializers.CharField(source='estado_reserva.nombre', read_only=True)

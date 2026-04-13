@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -15,7 +15,6 @@ from .serializer import (
     EstadoReservaSerializer,
     MetodoPagoSerializer,
     PagoSerializer,
-    ReservaAdminWriteSerializer,
     ReservaCreateSerializer,
     ReservaSerializer,
 )
@@ -29,10 +28,6 @@ def reservar_view(request):
 # Método para verificar si un usuario es cliente
 def _usuario_es_cliente(user):
     return user.groups.filter(name=ROLE_CLIENTE).exists()
-
-# Método para verificar si un usuario es administrador (superusuario o staff)
-def _usuario_es_admin(user):
-    return user.is_superuser or user.is_staff
 
 # Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
 def _obtener_estado(nombre_estado):
@@ -172,23 +167,24 @@ def crear_reserva_view(request):
     )
 
 
-class ReservaViewSet(viewsets.ModelViewSet):
+class ReservaViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == 'create':
             return ReservaCreateSerializer
-        if self.action in ('update', 'partial_update'):
-            return ReservaAdminWriteSerializer
         return ReservaSerializer
 
     def get_queryset(self):
-        queryset = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'cliente').order_by('-fecha_reserva')
-
-        if self.request.user.is_superuser or self.request.user.is_staff:
-            return queryset
-
-        return queryset.filter(cliente=self.request.user)
+        return Reserva.objects.select_related('estado_reserva', 'vehiculo', 'cliente').filter(
+            cliente=self.request.user
+        ).order_by('-fecha_reserva')
 
     def create(self, request, *args, **kwargs):
         if not _usuario_es_cliente(request.user):
@@ -229,27 +225,9 @@ class ReservaViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    def update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar reservas.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().update(request, *args, **kwargs)
-
-    def partial_update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar reservas.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().partial_update(request, *args, **kwargs)
-
     def destroy(self, request, *args, **kwargs):
         reserva = self.get_object()
-        es_admin = _usuario_es_admin(request.user)
-
-        if not es_admin and reserva.cliente_id != request.user.id:
+        if reserva.cliente_id != request.user.id:
             return Response(
                 {'ok': False, 'mensaje': 'No tienes permisos para eliminar esta reserva.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -261,16 +239,15 @@ class ReservaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        if not es_admin:
-            hoy = timezone.localdate()
-            if reserva.fecha_inicio <= hoy:
-                return Response(
-                    {
-                        'ok': False,
-                        'mensaje': 'Solo puedes cancelar la reserva hasta un dia antes de la fecha de inicio.',
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        hoy = timezone.localdate()
+        if reserva.fecha_inicio <= hoy:
+            return Response(
+                {
+                    'ok': False,
+                    'mensaje': 'Solo puedes cancelar la reserva hasta un dia antes de la fecha de inicio.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         reserva.estado_reserva = _obtener_estado('Cancelada')
         reserva.save(update_fields=['estado_reserva'])
@@ -281,93 +258,31 @@ class ReservaViewSet(viewsets.ModelViewSet):
         )
 
 
-class EstadoReservaViewSet(viewsets.ModelViewSet):
+class EstadoReservaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = EstadoReserva.objects.all().order_by('id')
     serializer_class = EstadoReservaSerializer
     permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden crear estados.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().create(request, *args, **kwargs)
 
-    def update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar estados.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().update(request, *args, **kwargs)
-
-    def partial_update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar estados.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().partial_update(request, *args, **kwargs)
-
-    def destroy(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden eliminar estados.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().destroy(request, *args, **kwargs)
-
-
-class MetodoPagoViewSet(viewsets.ModelViewSet):
+class MetodoPagoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MetodoPago.objects.all().order_by('id')
     serializer_class = MetodoPagoSerializer
     permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden crear metodos de pago.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().create(request, *args, **kwargs)
 
-    def update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar metodos de pago.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().update(request, *args, **kwargs)
-
-    def partial_update(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden editar metodos de pago.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().partial_update(request, *args, **kwargs)
-
-    def destroy(self, request, *args, **kwargs):
-        if not _usuario_es_admin(request.user):
-            return Response(
-                {'ok': False, 'mensaje': 'Solo administradores pueden eliminar metodos de pago.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return super().destroy(request, *args, **kwargs)
-
-
-class PagoViewSet(viewsets.ModelViewSet):
+class PagoViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = PagoSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Pago.objects.select_related('metodo_pago', 'reserva', 'reserva__cliente').order_by('-fecha_pago')
-
-        if _usuario_es_admin(self.request.user):
-            return queryset
-
-        return queryset.filter(reserva__cliente=self.request.user)
+        return Pago.objects.select_related('metodo_pago', 'reserva', 'reserva__cliente').filter(
+            reserva__cliente=self.request.user
+        ).order_by('-fecha_pago')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -396,7 +311,7 @@ class PagoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not _usuario_es_admin(request.user) and reserva.cliente_id != request.user.id:
+        if reserva.cliente_id != request.user.id:
             return Response(
                 {'ok': False, 'mensaje': 'No puedes registrar pagos para reservas de otro usuario.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -420,79 +335,3 @@ class PagoViewSet(viewsets.ModelViewSet):
             {'ok': True, 'mensaje': 'Pago registrado correctamente.', 'pago': PagoSerializer(pago).data},
             status=status.HTTP_201_CREATED,
         )
-
-    def update(self, request, *args, **kwargs):
-        pago = self.get_object()
-        if not _usuario_es_admin(request.user):
-            if pago.reserva is None or pago.reserva.cliente_id != request.user.id:
-                return Response(
-                    {'ok': False, 'mensaje': 'No tienes permisos para editar este pago.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-        serializer = self.get_serializer(pago, data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                {'ok': False, 'errores': serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        reserva_destino = serializer.validated_data.get('reserva', pago.reserva)
-        if not _usuario_es_admin(request.user):
-            if reserva_destino is None or reserva_destino.cliente_id != request.user.id:
-                return Response(
-                    {'ok': False, 'mensaje': 'No puedes asociar el pago a una reserva de otro usuario.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-        if reserva_destino and Pago.objects.filter(reserva=reserva_destino).exclude(id=pago.id).exists():
-            return Response(
-                {'ok': False, 'mensaje': 'La reserva destino ya tiene un pago registrado.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def partial_update(self, request, *args, **kwargs):
-        pago = self.get_object()
-        if not _usuario_es_admin(request.user):
-            if pago.reserva is None or pago.reserva.cliente_id != request.user.id:
-                return Response(
-                    {'ok': False, 'mensaje': 'No tienes permisos para editar este pago.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-        serializer = self.get_serializer(pago, data=request.data, partial=True)
-        if not serializer.is_valid():
-            return Response(
-                {'ok': False, 'errores': serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        reserva_destino = serializer.validated_data.get('reserva', pago.reserva)
-        if not _usuario_es_admin(request.user):
-            if reserva_destino is None or reserva_destino.cliente_id != request.user.id:
-                return Response(
-                    {'ok': False, 'mensaje': 'No puedes asociar el pago a una reserva de otro usuario.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-        if reserva_destino and Pago.objects.filter(reserva=reserva_destino).exclude(id=pago.id).exists():
-            return Response(
-                {'ok': False, 'mensaje': 'La reserva destino ya tiene un pago registrado.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def destroy(self, request, *args, **kwargs):
-        pago = self.get_object()
-        if not _usuario_es_admin(request.user):
-            if pago.reserva is None or pago.reserva.cliente_id != request.user.id:
-                return Response(
-                    {'ok': False, 'mensaje': 'No tienes permisos para eliminar este pago.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-        return super().destroy(request, *args, **kwargs)
