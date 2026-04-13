@@ -22,6 +22,20 @@ class ReservaCreateSerializer(serializers.Serializer):
 
 
 class ReservaAdminWriteSerializer(serializers.ModelSerializer):
+    def validate_estado_reserva(self, value):
+        if not self.instance or not self.instance.estado_reserva:
+            return value
+
+        estado_actual = self.instance.estado_reserva.nombre.strip().lower()
+        estado_nuevo = value.nombre.strip().lower()
+
+        if estado_actual == 'cancelada' and estado_nuevo in {'pendiente', 'confirmada'}:
+            raise serializers.ValidationError(
+                'No se puede reactivar una reserva cancelada sin una politica explicita.'
+            )
+
+        return value
+
     class Meta:
         model = Reserva
         fields = ('id', 'estado_reserva', 'monto_total', 'fecha_inicio', 'fecha_fin', 'cliente', 'vehiculo')

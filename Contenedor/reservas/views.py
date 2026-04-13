@@ -3,6 +3,7 @@ import json
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -32,6 +33,17 @@ def _usuario_es_cliente(user):
 
 def _usuario_es_admin(user):
     return user.is_superuser or user.is_staff
+
+
+def _obtener_estado(nombre_estado):
+    estado, _ = EstadoReserva.objects.get_or_create(nombre=nombre_estado)
+    return estado
+
+
+def _reserva_esta_cancelada(reserva):
+    if not reserva.estado_reserva:
+        return False
+    return reserva.estado_reserva.nombre.strip().lower() == 'cancelada'
 
 
 def _reserva_a_dict(reserva):
@@ -74,7 +86,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
                 'Alguien mas rapido acaba de reservar este vehiculo para esas fechas. Por favor, intenta con otro rango.',
             )
 
-        estado_pendiente, _ = EstadoReserva.objects.get_or_create(nombre='Pendiente')
+        estado_pendiente = _obtener_estado('Pendiente')
         cantidad_dias = (fecha_fin - fecha_inicio).days
         monto_total = cantidad_dias * vehiculo_bloqueado.precio_x_dia
 
@@ -230,12 +242,38 @@ class ReservaViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         reserva = self.get_object()
-        if not _usuario_es_admin(request.user) and reserva.cliente_id != request.user.id:
+        es_admin = _usuario_es_admin(request.user)
+
+        if not es_admin and reserva.cliente_id != request.user.id:
             return Response(
                 {'ok': False, 'mensaje': 'No tienes permisos para eliminar esta reserva.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        return super().destroy(request, *args, **kwargs)
+
+        if _reserva_esta_cancelada(reserva):
+            return Response(
+                {'ok': True, 'mensaje': 'La reserva ya se encuentra cancelada.'},
+                status=status.HTTP_200_OK,
+            )
+
+        if not es_admin:
+            hoy = timezone.localdate()
+            if reserva.fecha_inicio <= hoy:
+                return Response(
+                    {
+                        'ok': False,
+                        'mensaje': 'Solo puedes cancelar la reserva hasta un dia antes de la fecha de inicio.',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        reserva.estado_reserva = _obtener_estado('Cancelada')
+        reserva.save(update_fields=['estado_reserva'])
+
+        return Response(
+            {'ok': True, 'mensaje': 'Reserva cancelada correctamente.', 'reserva': ReservaSerializer(reserva).data},
+            status=status.HTTP_200_OK,
+        )
 
 
 class EstadoReservaViewSet(viewsets.ModelViewSet):
@@ -347,13 +385,26 @@ class PagoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if _reserva_esta_cancelada(reserva):
+            return Response(
+                {'ok': False, 'mensaje': 'No se puede registrar un pago sobre una reserva cancelada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not _usuario_es_admin(request.user) and reserva.cliente_id != request.user.id:
             return Response(
                 {'ok': False, 'mensaje': 'No puedes registrar pagos para reservas de otro usuario.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        pago = serializer.save()
+        with transaction.atomic():
+            pago = serializer.save()
+
+            estado_actual = reserva.estado_reserva.nombre.strip().lower() if reserva.estado_reserva else ''
+            if estado_actual == 'pendiente':
+                reserva.estado_reserva = _obtener_estado('Confirmada')
+                reserva.save(update_fields=['estado_reserva'])
+
         return Response(
             {'ok': True, 'mensaje': 'Pago registrado correctamente.', 'pago': PagoSerializer(pago).data},
             status=status.HTTP_201_CREATED,
