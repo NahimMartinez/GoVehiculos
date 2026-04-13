@@ -15,7 +15,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index, name='inicio'),
     path('auth/', include('usuarios.urls')), # URLs de autenticación (registro, login, logout)
+    path('api-auth/', include('rest_framework.urls')), # Login/logout de la interfaz browsable de DRF
     path('api/', include('usuarios.api_urls')), # URLs exclusivas de la API REST
+    path('api/', include('reservas.api_urls')), # URLs API REST de reservas
     path('schema/', schema_view, name='openapi-schema'),
     path('vehiculos/', include('vehiculos.urls')),
     path('reservas/', include('reservas.urls')),

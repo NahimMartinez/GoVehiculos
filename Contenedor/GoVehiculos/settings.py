@@ -137,3 +137,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.openapi.AutoSchema',
 }
+
+# Evita el redirect por defecto a /accounts/profile/ tras iniciar sesión.
+LOGIN_REDIRECT_URL = '/api/v1/'
+LOGOUT_REDIRECT_URL = '/api/v1/'
