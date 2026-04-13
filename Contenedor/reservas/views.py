@@ -22,30 +22,30 @@ from .serializer import (
 from usuarios.signals import ROLE_CLIENTE
 from vehiculos.models import Vehiculo
 
-
+# Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
 def reservar_view(request):
     return render(request, 'reservas/reserva.html')
 
-
+# Método para verificar si un usuario es cliente
 def _usuario_es_cliente(user):
     return user.groups.filter(name=ROLE_CLIENTE).exists()
 
-
+# Método para verificar si un usuario es administrador (superusuario o staff)
 def _usuario_es_admin(user):
     return user.is_superuser or user.is_staff
 
-
+# Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
 def _obtener_estado(nombre_estado):
     estado, _ = EstadoReserva.objects.get_or_create(nombre=nombre_estado)
     return estado
 
-
+# Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado).
 def _reserva_esta_cancelada(reserva):
     if not reserva.estado_reserva:
         return False
     return reserva.estado_reserva.nombre.strip().lower() == 'cancelada'
 
-
+# Convierte una instancia de Reserva en un diccionario serializable para respuestas JSON.
 def _reserva_a_dict(reserva):
     return {
         'id': reserva.id,
@@ -64,6 +64,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
     if vehiculo.duenio_id == usuario.id:
         return None, 'No puedes reservar un vehiculo propio.'
 
+    # Utilizamos una transacción atómica para garantizar que la verificación de disponibilidad y la creación de la reserva se realicen de manera segura y sin condiciones de carrera. Al usar select_for_update() al consultar el vehículo, bloqueamos esa fila en la base de datos para evitar que otros procesos puedan reservar el mismo vehículo al mismo tiempo, lo que ayuda a garantizar la consistencia de los datos y evitar conflictos de reservas.
     with transaction.atomic():
         vehiculo_bloqueado = Vehiculo.objects.select_for_update().filter(
             id=vehiculo.id,
@@ -88,6 +89,8 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
 
         estado_pendiente = _obtener_estado('Pendiente')
         cantidad_dias = (fecha_fin - fecha_inicio).days
+
+        # Calculamos el monto total de la reserva multiplicando la cantidad de días por el precio por día del vehículo. Esto nos da el costo total que el cliente deberá pagar por la reserva, lo que es esencial para el proceso de pago y para mostrar al cliente el costo de su reserva antes de confirmarla.
         monto_total = cantidad_dias * vehiculo_bloqueado.precio_x_dia
 
         reserva = Reserva.objects.create(
@@ -101,7 +104,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
 
     return reserva, None
 
-
+# El método _payload_reserva se encarga de extraer los datos de la solicitud, ya sea desde el cuerpo JSON o desde los datos POST tradicionales. Esto permite que la vista crear_reserva_view pueda manejar solicitudes tanto con contenido JSON (por ejemplo, desde una API) como con datos de formulario estándar (por ejemplo, desde un formulario HTML), lo que hace que la vista sea más flexible y compatible con diferentes tipos de clientes.
 def _payload_reserva(request):
     if request.content_type and 'application/json' in request.content_type:
         try:

@@ -36,6 +36,7 @@ class Vehiculo(models.Model):
     precio_x_dia = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     imagen = models.ImageField(upload_to='vehiculos/', null=True, blank=True)
     activo = models.BooleanField(default=True)
+    # Agrega este campo para indicar si el vehículo fue aprobado por un administrador. Esto es útil para implementar un flujo de trabajo donde los dueños de vehículos pueden agregar nuevos vehículos, pero estos no estarán disponibles para reserva hasta que un administrador los revise y apruebe.
     esta_aprobado = models.BooleanField(default=True)
 
     # Relaciones

@@ -14,13 +14,13 @@ class MetodoPagoSerializer(serializers.ModelSerializer):
         model = MetodoPago
         fields = ('id', 'nombre')
 
-
+# Serializer de entrada para creación de reserva por cliente. Solo acepta los datos mínimos de la solicitud (vehiculo_id, fecha_inicio, fecha_fin) y deja la lógica de negocio/sincronización transaccional en la vista.
 class ReservaCreateSerializer(serializers.Serializer):
     vehiculo_id = serializers.IntegerField(min_value=1)
     fecha_inicio = serializers.DateField()
     fecha_fin = serializers.DateField()
 
-
+# Serializer de escritura administrativa para modificar reservas existentes. Permite editar campos de modelo (incluido estado_reserva) y valida reglas de transición, por ejemplo impedir reactivar una reserva que ya está cancelada.
 class ReservaAdminWriteSerializer(serializers.ModelSerializer):
     def validate_estado_reserva(self, value):
         if not self.instance or not self.instance.estado_reserva:
@@ -29,6 +29,7 @@ class ReservaAdminWriteSerializer(serializers.ModelSerializer):
         estado_actual = self.instance.estado_reserva.nombre.strip().lower()
         estado_nuevo = value.nombre.strip().lower()
 
+        # Una reserva cancelada no puede volver a otro estado
         if estado_actual == 'cancelada' and estado_nuevo in {'pendiente', 'confirmada'}:
             raise serializers.ValidationError(
                 'No se puede reactivar una reserva cancelada sin una politica explicita.'
