@@ -7,8 +7,14 @@ from vehiculos.models import Vehiculo
 class EstadoReserva(models.Model):
     nombre = models.CharField(max_length=25)
 
+    def __str__(self):
+        return self.nombre
+
 class MetodoPago(models.Model):
     nombre = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.nombre
 
 
 # QuerySet es una implementación personalizada para el modelo Reserva, con métodos específicos para filtrar reservas en estados bloqueantes y con solapamiento de fechas.
@@ -47,6 +53,9 @@ class Reserva(models.Model):
     # Asignamos el manager personalizado a nuestro modelo Reserva, lo que nos permitirá utilizar los métodos definidos en ReservaQuerySet para filtrar reservas según los criterios específicos de estados bloqueantes y solapamiento de fechas.
     objects = ReservaQuerySet.as_manager()
 
+    def __str__(self):
+        return f'Reserva #{self.id}'
+
 class Pago(models.Model):
     fecha_pago = models.DateTimeField(auto_now_add=True)
     comprobante_transaccion = models.CharField(max_length=100)
@@ -54,4 +63,7 @@ class Pago(models.Model):
     #Relaciones
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.SET_NULL, null=True)
     reserva = models.ForeignKey(Reserva, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f'Pago #{self.id}'
 

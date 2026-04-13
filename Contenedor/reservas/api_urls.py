@@ -7,6 +7,9 @@ from . import views
 
 router = routers.DefaultRouter()
 router.register(r'reservas', views.ReservaViewSet, basename='reservas')
+router.register(r'estados-reserva', views.EstadoReservaViewSet, basename='estados-reserva')
+router.register(r'metodos-pago', views.MetodoPagoViewSet, basename='metodos-pago')
+router.register(r'pagos', views.PagoViewSet, basename='pagos')
 
 urlpatterns = [
     path('v1/', include(router.urls)),
