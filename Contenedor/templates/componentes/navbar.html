@@ -7,7 +7,7 @@
         </a>
         <div class="hidden md:flex items-center gap-8">
             {% if user.is_authenticated %}
-                <a class="text-slate-600 dark:text-slate-400 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="#">Vehículos</a>
+                <a class="text-slate-600 dark:text-slate-400 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="{% url 'lista_vehiculos' %}">Reservar Vehículos</a>
                 {% for group in user.groups.all %}
                     {% if group.name == 'Socios' %}
                         <a class="text-slate-600 dark:text-slate-400 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="{% url 'mis_vehiculos' %}">Mis vehículos</a>

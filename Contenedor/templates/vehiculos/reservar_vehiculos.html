@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<section id="catalogo" class="py-24 bg-surface px-8">
+    <div class="max-w-screen-2xl mx-auto mb-10">
+        <h2 class="text-3xl md:text-4xl font-headline font-extrabold text-on-surface tracking-tight">Vehiculos Destacados</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+    {% for vehiculo in vehiculos %}
+    <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500">
+        <div class="relative h-64 overflow-hidden bg-slate-200">
+            {% if vehiculo.imagen %}
+            <img src="{{ vehiculo.imagen.url }}" alt="{{ vehiculo.modelo }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/>
+            {% else %}
+            <div class="w-full h-full flex justify-center items-center text-slate-400 group-hover:scale-105 transition-transform duration-700">
+                <span class="material-symbols-outlined text-6xl">directions_car</span>
+            </div>
+            {% endif %}
+            
+            <div class="absolute top-4 left-4 bg-tertiary text-white px-3 py-1 rounded-full text-xs font-bold uppercase">
+                {{ vehiculo.estado_vehiculo }} </div>
+            
+            <div class="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold">
+                {{ vehiculo.num_reservas }} reservas
+            </div>
+        </div>
+        <div class="p-8">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-headline font-bold capitalize">{{ vehiculo.modelo }}</h3>
+                <span class="text-primary font-bold">${{ vehiculo.precio_x_dia }}<small class="text-on-surface-variant font-normal">/dia</small></span>
+            </div>
+            <div class="flex gap-4 mb-8 text-on-surface-variant text-sm">
+                <span class="flex items-center gap-1 capitalize">
+                    <span class="material-symbols-outlined text-sm">category</span> {{ vehiculo.tipo_vehiculo }}
+                </span>
+                <span class="flex items-center gap-1 uppercase">
+                    <span class="material-symbols-outlined text-sm">pin</span> {{ vehiculo.matricula }}
+                </span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{% url 'detalle_vehiculo' vehiculo.id %}" class="block text-center w-full py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
+                    Ver detalle
+                </a>
+                <a href="{% url 'reserva_vehiculo' %}" class="block text-center w-full py-4 bg-surface-container-high text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                    Reservar ahora
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-3 text-center py-12 text-surface-variant">
+        <span class="material-symbols-outlined text-4xl mb-2">no_crash</span>
+        <p>Aún no hay vehículos disponibles.</p>
+    </div>
+    {% endfor %}
+</div>
+</section>
+{% endblock %}

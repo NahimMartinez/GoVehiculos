@@ -18,6 +18,25 @@ def index(request):
 
     return render(request, 'index.html', contexto)
 
+def listar_vehiculos_view(request):
+    # Traemos los 6 vehiculos mas reservados (vehiculos destacados)
+    vehiculos = Vehiculo.objects.filter(activo=True)
+
+    contexto = {
+        'vehiculos': vehiculos
+    }
+
+    return render(request, 'vehiculos/reservar_vehiculos.html', contexto)
+
+def mostrar_detalle_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, activo=True)
+
+    contexto = {
+        'vehiculo': vehiculo
+    }
+
+    return render(request, 'vehiculos/detalle_vehiculo.html', contexto)
+
 # si no estás logueado, te manda al login
 @login_required
 def mis_vehiculos_view(request):
