@@ -7,6 +7,15 @@ from django.utils import timezone
 from reservas.models import Reserva
 from .forms import VehiculoForm
 
+# Funciones auxiliares
+def agregar_vehiculo(vehiculo):
+    """
+    Agrega (inserta o actualiza) un vehículo en la base de datos.
+    
+    """
+    vehiculo.save()
+    return vehiculo
+
 # Create your views here.
 def index(request):
     # Traemos los 6 vehiculos mas reservados (vehiculos destacados)
@@ -85,7 +94,13 @@ def mis_vehiculos_view(request):
             if not vehiculo_a_editar:
                 # Solo asignar dueño si es creación
                 nuevo_vehiculo.duenio = request.user 
-            nuevo_vehiculo.save() 
+            agregar_vehiculo(nuevo_vehiculo)
+            
+            # Mensaje de confirmación
+            if vehiculo_a_editar:
+                messages.success(request, 'Vehículo actualizado')
+            else:
+                messages.success(request, 'Vehículo registrado')
             
             return redirect('mis_vehiculos') # Recargamos la página
     

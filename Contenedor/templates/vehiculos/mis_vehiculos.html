@@ -3,6 +3,19 @@
 {% block title %}Mis Vehículos | GoVehiculos{% endblock %}
 
 {% block contenido %}
+{% if messages %}
+<div class="max-w-screen-2xl mx-auto px-8 pt-8">
+    {% for message in messages %}
+    <div class="mb-4 rounded-xl border p-4 shadow-sm flex items-center gap-3 {% if message.tags == 'success' %}border-tertiary bg-green-50 text-green-900{% elif message.tags == 'error' %}border-red-300 bg-red-50 text-red-900{% else %}border-blue-300 bg-blue-50 text-blue-900{% endif %}">
+        <span class="material-symbols-outlined">
+            {% if message.tags == 'error' %}error{% elif message.tags == 'success' %}check_circle{% else %}info{% endif %}
+        </span>
+        <p class="font-semibold">{{ message }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <section class="py-24 bg-surface px-8">
     <div class="max-w-screen-2xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -10,7 +23,7 @@
             <p class="text-surface-variant mt-2">Gestioná los vehículos que tenés publicados en la plataforma.</p>
         </div>
         <button onclick="document.getElementById('modal-vehiculo').classList.remove('hidden')" class="px-6 py-2 bg-primary text-white font-bold rounded-lg shadow hover:bg-primary-container transition-colors">
-            + Nuevo Vehículo
+            + Registro de Vehículos
         </button>
     </div>
 
