@@ -34,7 +34,14 @@
 
     <div class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
         {% for vehiculo in mis_vehiculos %}
-        <div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-outline-variant/20 flex flex-col">
+        <div
+            class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-outline-variant/20 flex flex-col cursor-pointer"
+            data-vehiculo-card
+            data-detalle-url="{% url 'detalle_vehiculo' vehiculo.id %}"
+            role="link"
+            tabindex="0"
+            aria-label="Ver detalle de {{ vehiculo.modelo }}"
+        >
             <div class="relative h-56 bg-slate-200">
                 {% if vehiculo.imagen %}
                     <img src="{{ vehiculo.imagen.url }}" alt="{{ vehiculo.modelo }}" class="w-full h-full object-cover">

@@ -40,6 +40,33 @@ document.addEventListener("DOMContentLoaded", () => {
 		});
 	}
 
+	const vehiculoCards = document.querySelectorAll("[data-vehiculo-card]");
+
+	const navigateToDetalle = (card) => {
+		const detalleUrl = card.dataset.detalleUrl;
+		if (detalleUrl) {
+			window.location.href = detalleUrl;
+		}
+	};
+
+	vehiculoCards.forEach((card) => {
+		card.addEventListener("click", (event) => {
+			const clickedInteractiveElement = event.target.closest("a, button, input, select, textarea, form, label");
+			if (clickedInteractiveElement) {
+				return;
+			}
+
+			navigateToDetalle(card);
+		});
+
+		card.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				navigateToDetalle(card);
+			}
+		});
+	});
+
 	const modalEliminar = document.getElementById("modal-eliminar-vehiculo");
 	if (!modalEliminar) {
 		return;
