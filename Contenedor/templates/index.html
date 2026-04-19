@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}GoVehiculos | Movilidad Inteligente 2026{% endblock %}
 {% block meta_description %}Gestion de flotas y reservas con validacion en tiempo real. Movilidad inteligente para socios y clientes.{% endblock %}
+
+{% block head_extra %}
+<script src="{% static 'js/pages/home-hero.js' %}" defer></script>
+{% endblock %}
 
 {% block contenido %}
 <section class="relative h-[921px] w-full overflow-hidden" data-carousel="hero">

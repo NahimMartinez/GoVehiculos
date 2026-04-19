@@ -1,4 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block head_extra %}
+<script src="{% static 'js/pages/usuarios-abm.js' %}" defer></script>
+{% endblock %}
 
 {% block contenido %}
 <section class="py-12 px-6 max-w-7xl mx-auto min-h-screen">
@@ -146,54 +151,4 @@
         </div>
     </div>
 </div>
-
-{% block head_extra %}
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('user-action-modal');
-        if (!modal) {
-            return;
-        }
-
-        const modalTitle = document.getElementById('user-action-modal-title');
-        const modalMessage = document.getElementById('user-action-modal-message');
-        const modalForm = document.getElementById('user-action-modal-form');
-        const modalCancel = document.getElementById('user-action-modal-cancel');
-        const modalBackdrop = modal.querySelector('[data-modal-backdrop]');
-        const triggers = document.querySelectorAll('[data-user-action-trigger]');
-
-        const closeModal = () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        };
-
-        const openModal = ({ url, title, message }) => {
-            modalForm.action = url;
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        };
-
-        triggers.forEach((trigger) => {
-            trigger.addEventListener('click', () => {
-                openModal({
-                    url: trigger.dataset.actionUrl,
-                    title: trigger.dataset.actionTitle,
-                    message: trigger.dataset.actionMessage,
-                });
-            });
-        });
-
-        modalCancel.addEventListener('click', closeModal);
-        modalBackdrop.addEventListener('click', closeModal);
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeModal();
-            }
-        });
-    });
-</script>
-{% endblock %}
 {% endblock %}

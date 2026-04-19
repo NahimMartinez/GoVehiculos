@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Mis Vehículos | GoVehiculos{% endblock %}
+
+{% block head_extra %}
+<script src="{% static 'js/pages/mis-vehiculos.js' %}" defer></script>
+{% endblock %}
 
 {% block contenido %}
 {% if messages %}
@@ -22,7 +27,7 @@
             <h1 class="text-3xl md:text-4xl font-headline font-extrabold text-on-surface tracking-tight">Mi Flota</h1>
             <p class="text-surface-variant mt-2">Gestioná los vehículos que tenés publicados en la plataforma.</p>
         </div>
-        <button onclick="document.getElementById('modal-vehiculo').classList.remove('hidden')" class="px-6 py-2 bg-primary text-white font-bold rounded-lg shadow hover:bg-primary-container transition-colors">
+        <button type="button" data-open-modal-vehiculo class="px-6 py-2 bg-primary text-white font-bold rounded-lg shadow hover:bg-primary-container transition-colors">
             + Registro de Vehículos
         </button>
     </div>
@@ -88,12 +93,12 @@
             <h3 class="text-xl font-bold text-slate-900 dark:text-white" id="modal-title">
                 {% if vehiculo_a_editar %}Editar vehículo{% else %}Registrar nuevo vehículo{% endif %}
             </h3>
-            <button onclick="document.getElementById('modal-vehiculo').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors">
+            <button type="button" data-close-modal-vehiculo class="text-slate-400 hover:text-red-500 transition-colors">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <form method="POST" action="{% url 'mis_vehiculos' %}" enctype="multipart/form-data" class="overflow-y-auto p-6 flex flex-col gap-4" id="form-vehiculo">
+        <form method="POST" action="{% url 'mis_vehiculos' %}" enctype="multipart/form-data" class="overflow-y-auto p-6 flex flex-col gap-4" id="form-vehiculo" data-es-edicion="{{ vehiculo_a_editar|yesno:'true,false' }}">
             {% csrf_token %}
                         {% if vehiculo_a_editar %}
                             <input type="hidden" name="vehiculo_id" value="{{ vehiculo_a_editar.id }}">
@@ -117,7 +122,7 @@
             {% endfor %}
 
             <div class="mt-4 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button type="button" onclick="document.getElementById('modal-vehiculo').classList.add('hidden')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
+                <button type="button" data-close-modal-vehiculo class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
                     Cancelar
                 </button>
                 <button type="submit" class="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
@@ -155,53 +160,4 @@
         </form>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Referencias a elementos de la modal de alta/edicion.
-        const form = document.getElementById('form-vehiculo');
-        const modal = document.getElementById('modal-vehiculo');
-        const esEdicion = {% if vehiculo_a_editar %}true{% else %}false{% endif %};
-
-        // Si hay errores de validacion o estamos editando, mantener la modal abierta.
-        const hayErrores = form.querySelectorAll('.text-red-500').length > 0;
-        if (hayErrores || esEdicion) {
-            modal.classList.remove('hidden');
-        }
-
-        // Referencias a elementos de la modal de confirmacion de eliminacion.
-        const modalEliminar = document.getElementById('modal-eliminar-vehiculo');
-        const inputVehiculoId = document.getElementById('input-vehiculo-id-eliminar');
-        const textoVehiculo = document.getElementById('texto-vehiculo-eliminar');
-        const cerrarModalEliminar = document.getElementById('cerrar-modal-eliminar');
-        const cancelarEliminar = document.getElementById('cancelar-eliminar');
-
-        // Cada boton "Eliminar" carga los datos del vehiculo seleccionado y abre la modal.
-        document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                inputVehiculoId.value = btn.dataset.vehiculoId;
-                textoVehiculo.textContent = btn.dataset.vehiculoNombre + ' - ' + btn.dataset.vehiculoMatricula;
-                modalEliminar.classList.remove('hidden');
-            });
-        });
-
-        // Cierra la modal y limpia datos para evitar arrastrar seleccion anterior.
-        function cerrarModal() {
-            modalEliminar.classList.add('hidden');
-            inputVehiculoId.value = '';
-            textoVehiculo.textContent = '';
-        }
-
-        // Cierre por botones explicitos.
-        cerrarModalEliminar.addEventListener('click', cerrarModal);
-        cancelarEliminar.addEventListener('click', cerrarModal);
-
-        // Cierre haciendo click fuera del panel.
-        modalEliminar.addEventListener('click', function(event) {
-            if (event.target === modalEliminar) {
-                cerrarModal();
-            }
-        });
-    });
-</script>
 {% endblock %}
