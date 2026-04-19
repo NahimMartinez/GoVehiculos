@@ -109,18 +109,31 @@
 					</dl>
 				</div>
 
-				<div class="rounded-3xl bg-gradient-to-r from-primary to-tertiary p-6 text-white shadow-xl">
-					<h2 class="text-xl font-bold">¿Querés reservarlo?</h2>
-					<p class="mt-2 text-white/90">Si este vehículo está disponible, podés avanzar al formulario de reserva.</p>
-					<div class="mt-5 flex flex-col sm:flex-row gap-3">
-						{% if puede_editar %}
-							<a href="{% url 'mis_vehiculos' %}?edit={{ vehiculo.id }}" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-bold text-primary transition-transform hover:scale-[1.02]">
+				{% if puede_editar %}
+					<div class="rounded-3xl bg-surface-container-lowest p-6 shadow-sm border border-outline-variant/20">
+						<h2 class="text-xl font-bold text-on-surface">Gestión del vehículo</h2>
+						<p class="mt-2 text-on-surface-variant">Como dueño, podés actualizar la información de esta unidad.</p>
+						<div class="mt-5">
+							<a href="{% url 'mis_vehiculos' %}?edit={{ vehiculo.id }}" class="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-primary-container">
 								Actualizar información
 							</a>
+						</div>
+					</div>
+				{% endif %}
+
+				<div class="rounded-3xl bg-gradient-to-r from-primary to-tertiary p-6 text-white shadow-xl">
+					<h2 class="text-xl font-bold">Reserva</h2>
+					{% if puede_editar %}
+						<p class="mt-2 text-white/90">No podés reservar tu propio vehículo.</p>
+					{% else %}
+						<p class="mt-2 text-white/90">Si este vehículo está disponible, podés avanzar al formulario de reserva.</p>
+					{% endif %}
+					<div class="mt-5 flex flex-col sm:flex-row gap-3">
+						{% if not puede_editar %}
+							<a href="{% url 'reserva_vehiculo' %}?vehiculo_id={{ vehiculo.id }}" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-bold text-primary transition-transform hover:scale-[1.02]">
+								Reservar ahora
+							</a>
 						{% endif %}
-						<a href="{% url 'reserva_vehiculo' %}?vehiculo_id={{ vehiculo.id }}" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 font-bold text-primary transition-transform hover:scale-[1.02]">
-							Reservar ahora
-						</a>
 						<a href="{% url 'lista_vehiculos' %}" class="inline-flex items-center justify-center rounded-xl border border-white/30 px-6 py-3 font-bold text-white transition-colors hover:bg-white/10">
 							Ver más vehículos
 						</a>
