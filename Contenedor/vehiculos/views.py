@@ -39,9 +39,11 @@ def listar_vehiculos_view(request):
 
 def mostrar_detalle_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id, activo=True)
+    puede_editar = request.user.is_authenticated and vehiculo.duenio_id == request.user.id
 
     contexto = {
-        'vehiculo': vehiculo
+        'vehiculo': vehiculo,
+        'puede_editar': puede_editar,
     }
 
     return render(request, 'vehiculos/detalle_vehiculo.html', contexto)
