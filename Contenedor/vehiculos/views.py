@@ -8,13 +8,21 @@ from reservas.models import Reserva
 from .forms import VehiculoForm
 
 # Funciones auxiliares
-def agregar_vehiculo(vehiculo):
-    """
-    Agrega (inserta o actualiza) un vehículo en la base de datos.
-    
-    """
-    vehiculo.save()
-    return vehiculo
+def buscar_vehiculo(matricula):
+    return Vehiculo.objects.filter(matricula__iexact=matricula, activo=True)
+
+
+def obtener_vehiculo(matricula):
+    return buscar_vehiculo(matricula).first()
+
+
+def validar_datos(datos):
+    return datos.is_valid()
+
+
+def modificar_datos(datos):
+    datos.save()
+    return datos
 
 # Create your views here.
 def index(request):
@@ -50,7 +58,7 @@ def mostrar_detalle_view(request, vehiculo_id):
 
 # si no estás logueado, te manda al login
 @login_required
-def mis_vehiculos_view(request):
+def visualizar_flota_view(request):
     # Verificar si es edición
     vehiculo_id = request.GET.get('edit')
     vehiculo_a_editar = None
@@ -58,6 +66,9 @@ def mis_vehiculos_view(request):
     if vehiculo_id:
         # Obtener el vehículo y verificar que pertenece al usuario actual
         vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user, activo=True)
+        vehiculo_a_editar = obtener_vehiculo(vehiculo_a_editar.matricula)
+        if not vehiculo_a_editar or vehiculo_a_editar.duenio_id != request.user.id:
+            return redirect('mis_vehiculos')
     
     # El usuario envió el formulario desde la modal
     if request.method == 'POST':
@@ -85,18 +96,21 @@ def mis_vehiculos_view(request):
         vehiculo_id = request.POST.get('vehiculo_id')
         if vehiculo_id:
             vehiculo_a_editar = get_object_or_404(Vehiculo, id=vehiculo_id, duenio=request.user, activo=True)
+            vehiculo_a_editar = obtener_vehiculo(vehiculo_a_editar.matricula)
+            if not vehiculo_a_editar or vehiculo_a_editar.duenio_id != request.user.id:
+                return redirect('mis_vehiculos')
             form = VehiculoForm(request.POST, request.FILES, instance=vehiculo_a_editar)
         else:
             # Es creación: nuevo vehículo
             form = VehiculoForm(request.POST, request.FILES)
         
         
-        if form.is_valid():
+        if validar_datos(form):
             nuevo_vehiculo = form.save(commit=False)
             if not vehiculo_a_editar:
                 # Solo asignar dueño si es creación
                 nuevo_vehiculo.duenio = request.user 
-            agregar_vehiculo(nuevo_vehiculo)
+            modificar_datos(nuevo_vehiculo)
             
             # Mensaje de confirmación
             if vehiculo_a_editar:
@@ -124,6 +138,10 @@ def mis_vehiculos_view(request):
         'vehiculo_a_editar': vehiculo_a_editar, # Indicar si estamos editando
     }
     return render(request, 'vehiculos/mis_vehiculos.html', contexto)
+
+
+# Alias para mantener compatibilidad con referencias anteriores.
+mis_vehiculos_view = visualizar_flota_view
 
 def inicio_view(request):
     # Compatibilidad por si se usa esta vista en otra URL.
