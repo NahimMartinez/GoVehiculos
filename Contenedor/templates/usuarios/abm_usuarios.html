@@ -17,29 +17,43 @@
         </a>
     </div>
 
-    <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
+    <form method="get" class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_220px_auto_auto] md:items-end" data-users-filter-form>
         <div>
             <label for="users-search" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar usuario</label>
             <input
                 id="users-search"
                 type="search"
+                name="q"
+                value="{{ busqueda }}"
                 placeholder="Buscar por usuario, email o grupo"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                data-users-search
+                data-users-search-input
             >
         </div>
         <div>
             <label for="users-group-filter" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Filtrar por grupo</label>
             <select
                 id="users-group-filter"
+                name="grupo"
                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                data-users-group-filter
+                data-users-group-select
             >
-                <option value="todos">Todos los grupos</option>
+                <option value="">Todos los grupos</option>
+                {% for group in grupos_disponibles %}
+                    <option value="{{ group.name }}" {% if group.name == grupo_seleccionado %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
             </select>
         </div>
-        <p class="text-xs font-medium text-slate-500 md:col-span-2" data-users-result-count></p>
-    </div>
+        <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            Buscar
+        </button>
+        <a href="{% url 'abm_usuarios' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-600 hover:bg-slate-50">
+            Limpiar
+        </a>
+        <p class="text-xs font-medium text-slate-500 md:col-span-4">
+            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ paginator.count }} usuarios
+        </p>
+    </form>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
@@ -57,12 +71,7 @@
                 <tbody class="divide-y divide-slate-100">
                     
                     {% for u in usuarios %}
-                    <tr
-                        class="hover:bg-slate-50 transition-colors group"
-                        data-user-row
-                        data-search-text="{{ u.username|lower }} {{ u.email|lower }} {% for grupo in u.groups.all %}{{ grupo.name|lower }} {% empty %}sin grupo{% endfor %}"
-                        data-user-groups="{% for grupo in u.groups.all %}{{ grupo.name|lower }}{% if not forloop.last %}|{% endif %}{% empty %}sin grupo{% endfor %}"
-                    >
+                    <tr class="hover:bg-slate-50 transition-colors group">
                         
                         <td class="p-5 font-bold text-slate-800">
                             {{ u.username }}
@@ -70,7 +79,7 @@
 
                         <td class="p-5 text-slate-600 text-sm">
                             {% for grupo in u.groups.all %}
-                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700" data-user-group-item>
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                                     {{ grupo.name }}
                                 </span>{% if not forloop.last %} {% endif %}
                             {% empty %}
@@ -138,20 +147,52 @@
                     {% empty %}
                     <tr>
                         <td colspan="6" class="p-10 text-center text-slate-500 bg-slate-50">
-                            No hay usuarios registrados en el sistema.
+                            No se encontraron usuarios para la búsqueda/filtro seleccionado.
                         </td>
                     </tr>
                     {% endfor %}
-                    <tr class="hidden" data-users-empty-state>
-                        <td colspan="6" class="p-10 text-center text-slate-500 bg-slate-50">
-                            No hay usuarios que coincidan con la búsqueda o el filtro seleccionado.
-                        </td>
-                    </tr>
 
                 </tbody>
             </table>
         </div>
     </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginación de usuarios">
+        <p class="text-sm text-slate-500">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </p>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Anterior
+                </a>
+            {% else %}
+                <span class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-300">
+                    Anterior
+                </span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                    <span class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Siguiente
+                </a>
+            {% else %}
+                <span class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-300">
+                    Siguiente
+                </span>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
 </section>
 
 <div id="user-action-modal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">

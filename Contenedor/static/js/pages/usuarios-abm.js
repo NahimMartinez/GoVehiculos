@@ -1,109 +1,41 @@
 document.addEventListener("DOMContentLoaded", () => {
-	const searchInput = document.querySelector("[data-users-search]");
-	const groupFilter = document.querySelector("[data-users-group-filter]");
-	const resultCount = document.querySelector("[data-users-result-count]");
-	const emptyState = document.querySelector("[data-users-empty-state]");
-	const userRows = Array.from(document.querySelectorAll("[data-user-row]"));
+	const filtersForm = document.querySelector("[data-users-filter-form]");
+	const searchInput = document.querySelector("[data-users-search-input]");
+	const groupSelect = document.querySelector("[data-users-group-select]");
 
-	const normalizeText = (value) => (value || "").toString().trim().toLowerCase();
+	if (filtersForm && searchInput) {
+		let submitTimer = null;
 
-	const getRowGroups = (row) => {
-		const groupsFromDataset = normalizeText(row.dataset.userGroups);
-		if (groupsFromDataset) {
-			return groupsFromDataset
-				.split("|")
-				.map((group) => group.trim())
-				.filter(Boolean);
-		}
+		const submitFilters = () => {
+			filtersForm.submit();
+		};
 
-		const groupsFromBadges = Array.from(row.querySelectorAll("[data-user-group-item]"))
-			.map((groupBadge) => normalizeText(groupBadge.textContent))
-			.filter(Boolean);
+		searchInput.addEventListener("input", () => {
+			if (submitTimer) {
+				window.clearTimeout(submitTimer);
+			}
 
-		if (groupsFromBadges.length) {
-			return groupsFromBadges;
-		}
+			submitTimer = window.setTimeout(() => {
+				submitFilters();
+			}, 350);
+		});
 
-		return ["sin grupo"];
-	};
-
-	const getRowSearchableText = (row) => {
-		const searchableFromDataset = normalizeText(row.dataset.searchText);
-		if (searchableFromDataset) {
-			return searchableFromDataset;
-		}
-
-		return normalizeText(row.textContent);
-	};
-
-	const updateResultCount = (visibleRowsCount) => {
-		if (!resultCount) {
-			return;
-		}
-
-		const label = visibleRowsCount === 1 ? "usuario visible" : "usuarios visibles";
-		resultCount.textContent = `${visibleRowsCount} ${label}`;
-	};
-
-	const applyUsersFilters = () => {
-		if (!userRows.length) {
-			updateResultCount(0);
-			return;
-		}
-
-		const query = normalizeText(searchInput ? searchInput.value : "");
-		const selectedGroup = normalizeText(groupFilter ? groupFilter.value : "todos");
-		let visibleRowsCount = 0;
-
-		userRows.forEach((row) => {
-			const searchableText = getRowSearchableText(row);
-			const rowGroups = getRowGroups(row);
-
-			const matchesQuery = !query || searchableText.includes(query);
-			const matchesGroup = selectedGroup === "todos" || rowGroups.includes(selectedGroup);
-			const isVisible = matchesQuery && matchesGroup;
-
-			row.classList.toggle("hidden", !isVisible);
-			if (isVisible) {
-				visibleRowsCount += 1;
+		searchInput.addEventListener("keydown", (event) => {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				if (submitTimer) {
+					window.clearTimeout(submitTimer);
+				}
+				submitFilters();
 			}
 		});
+	}
 
-		if (emptyState) {
-			emptyState.classList.toggle("hidden", visibleRowsCount !== 0);
-		}
-
-		updateResultCount(visibleRowsCount);
-	};
-
-	const setupGroupFilterOptions = () => {
-		if (!groupFilter || !userRows.length) {
-			return;
-		}
-
-		const uniqueGroups = new Set();
-		userRows.forEach((row) => {
-			getRowGroups(row).forEach((group) => uniqueGroups.add(group));
+	if (filtersForm && groupSelect) {
+		groupSelect.addEventListener("change", () => {
+			filtersForm.submit();
 		});
-
-		Array.from(uniqueGroups)
-			.sort((first, second) => first.localeCompare(second))
-			.forEach((group) => {
-				const option = document.createElement("option");
-				option.value = group;
-				option.textContent = group.charAt(0).toUpperCase() + group.slice(1);
-				groupFilter.appendChild(option);
-			});
-	};
-
-	setupGroupFilterOptions();
-	if (searchInput) {
-		searchInput.addEventListener("input", applyUsersFilters);
 	}
-	if (groupFilter) {
-		groupFilter.addEventListener("change", applyUsersFilters);
-	}
-	applyUsersFilters();
 
 	const modal = document.getElementById("user-action-modal");
 	if (!modal) {
