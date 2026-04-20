@@ -23,6 +23,7 @@
                 <thead>
                     <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 text-sm uppercase tracking-wider">
                         <th class="p-5 font-bold">Usuario</th>
+                        <th class="p-5 font-bold">Grupo</th>
                         <th class="p-5 font-bold">Email</th>
                         <th class="p-5 font-bold">Fecha de Registro</th>
                         <th class="p-5 font-bold">Estado</th>
@@ -34,15 +35,18 @@
                     {% for u in usuarios %}
                     <tr class="hover:bg-slate-50 transition-colors group">
                         
-                        <td class="p-5 font-bold text-slate-800 flex flex-col">
+                        <td class="p-5 font-bold text-slate-800">
                             {{ u.username }}
-                            <span class="text-xs font-normal text-slate-500 mt-1">
-                                {% for grupo in u.groups.all %}
-                                    {{ grupo.name }}{% if not forloop.last %}, {% endif %}
-                                {% empty %}
-                                    Cliente sin grupo
-                                {% endfor %}
-                            </span>
+                        </td>
+
+                        <td class="p-5 text-slate-600 text-sm">
+                            {% for grupo in u.groups.all %}
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                    {{ grupo.name }}
+                                </span>{% if not forloop.last %} {% endif %}
+                            {% empty %}
+                                <span class="text-slate-400">Sin grupo</span>
+                            {% endfor %}
                         </td>
                         
                         <td class="p-5 text-slate-600">{{ u.email }}</td>
@@ -104,7 +108,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-slate-500 bg-slate-50">
+                        <td colspan="6" class="p-10 text-center text-slate-500 bg-slate-50">
                             No hay usuarios registrados en el sistema.
                         </td>
                     </tr>
