@@ -104,7 +104,8 @@ def registro_view(request):
       
     """
     if request.method == 'POST':
-        form = RegistroUsuarioForm(request.POST)
+        usuario = request.user if request.user.is_authenticated else None
+        form = RegistroUsuarioForm(request.POST, usuario_logueado=usuario)
         if form.is_valid():
             # Guardar el nuevo usuario en la base de datos
             nuevo_usuario = form.save()
@@ -119,7 +120,8 @@ def registro_view(request):
             
             return redirect('login')
     else:
-        form = RegistroUsuarioForm()
+        usuario = request.user if request.user.is_authenticated else None
+        form = RegistroUsuarioForm(usuario_logueado=usuario)
         
     return render(request, 'usuarios/registro.html', {'form': form})
 
@@ -197,13 +199,15 @@ def editar_usuario_view(request, usuario_id):
     
     - GET: Muestra el formulario pre-llenado con datos actuales del usuario.
     - POST: Valida y guarda los cambios (datos personales y nuevo rol/grupo).
-      Si el usuario es superusuario (admin), no puede ser editado desde aquí.
+    
+    Si el usuario que edita es administrador, puede cambiar el rol a Administrador.
+
       
     """
     usuario = get_object_or_404(Usuario, id=usuario_id, is_superuser=False)
 
     if request.method == 'POST':
-        form = EditarUsuarioForm(request.POST, instance=usuario)
+        form = EditarUsuarioForm(request.POST, instance=usuario, usuario_logueado=request.user)
         if form.is_valid():
             # Guardar cambios de datos personales
             usuario_actualizado = form.save()
@@ -219,7 +223,7 @@ def editar_usuario_view(request, usuario_id):
 
             return redirect('abm_usuarios')
     else:
-        form = EditarUsuarioForm(instance=usuario)
+        form = EditarUsuarioForm(instance=usuario, usuario_logueado=request.user)
 
     return render(request, 'usuarios/editar_usuario.html', {
         'form': form,

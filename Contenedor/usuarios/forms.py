@@ -29,10 +29,16 @@ class UsuarioValidationsMixin:
         return dni
 
 class RegistroUsuarioForm(UsuarioValidationsMixin, UserCreationForm):
+    """Formulario para registro de nuevos usuarios.
+    
+    Permite seleccionar rol (Clientes, Socios, Administradores si el usuario logueado es admin).
+    """
     rol = forms.ChoiceField(choices=[])
-    roles_permitidos = ("Clientes", "Socios")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario_logueado=None, **kwargs):
+        """Inicializa el formulario de registro.
+        
+        """
         super().__init__(*args, **kwargs)
         base_class = "w-full bg-surface-container-high border-none rounded-lg focus:ring-2 focus:ring-primary"
         placeholders = {
@@ -56,7 +62,12 @@ class RegistroUsuarioForm(UsuarioValidationsMixin, UserCreationForm):
         self.fields["dni"].widget.attrs.setdefault("inputmode", "numeric")
         self.fields["dni"].widget.attrs.setdefault("maxlength", "8")
 
-        grupos = Group.objects.filter(name__in=self.roles_permitidos).order_by("name")
+        # Determinar roles permitidos segun si el usuario es administrador
+        roles_permitidos = ["Clientes", "Socios"]
+        if usuario_logueado and usuario_logueado.groups.filter(name="Administradores").exists():
+            roles_permitidos.append("Administradores")
+        
+        grupos = Group.objects.filter(name__in=roles_permitidos).order_by("name")
         self.fields["rol"].choices = [(grupo.name, grupo.name) for grupo in grupos]
 
         self.fields["email"].widget.attrs.setdefault("autocomplete", "email")
@@ -70,13 +81,21 @@ class RegistroUsuarioForm(UsuarioValidationsMixin, UserCreationForm):
         fields = ['email', 'dni','first_name', 'last_name', 'username', 'rol', 'password1', 'password2']
 
 class EditarUsuarioForm(UsuarioValidationsMixin, forms.ModelForm):
+    """Formulario para editar datos y rol de un usuario existente.
+    
+    Solo permite asignar rol Administrador si el usuario que edita pertenece
+    al grupo Administradores.
+    """
     rol = forms.ChoiceField(choices=[])
 
     class Meta:
         model = Usuario
         fields = ["email", "dni", "first_name", "last_name", "username", "rol"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario_logueado=None, **kwargs):
+        """Inicializa el formulario de edicion.
+        
+        """
         super().__init__(*args, **kwargs)
         base_class = "w-full bg-surface-container-high border-none rounded-lg focus:ring-2 focus:ring-primary"
         placeholders = {
@@ -97,7 +116,14 @@ class EditarUsuarioForm(UsuarioValidationsMixin, forms.ModelForm):
         self.fields["dni"].widget.attrs.setdefault("inputmode", "numeric")
         self.fields["dni"].widget.attrs.setdefault("maxlength", "8")
 
-        grupos = Group.objects.order_by("name")
+        # Determinar grupos disponibles segun permisos del usuario logueado
+        if usuario_logueado and usuario_logueado.groups.filter(name="Administradores").exists():
+            # Admin puede ver y asignar todos los grupos
+            grupos = Group.objects.order_by("name")
+        else:
+            # No admin solo puede ver Clientes y Socios
+            grupos = Group.objects.filter(name__in=["Clientes", "Socios"]).order_by("name")
+        
         self.fields["rol"].choices = [(grupo.name, grupo.name) for grupo in grupos]
 
         if self.instance and self.instance.pk:
