@@ -41,16 +41,20 @@ def validar_datos(datos):
     return datos.is_valid()
 
 
-def modificar_datos(datos):
-    """Guarda los datos de un formulario en la base de datos.
-    
-    Persiste los cambios del formulario (modelo) en la base de datos.
-    
-    """
-    # Guardar los datos del formulario en la base de datos
-    datos.save()
+def agregar_vehiculo(vehiculo):
+    """Agrega un vehículo nuevo a la base de datos."""
+    # Guardar el nuevo vehículo en la base de datos
+    vehiculo.save()
     # Retornar el objeto guardado
-    return datos
+    return vehiculo
+
+
+def modificar_datos(vehiculo):
+    """Guarda modificaciones de un vehículo existente en la base de datos."""
+    # Persistir cambios del vehículo editado
+    vehiculo.save()
+    # Retornar el objeto actualizado
+    return vehiculo
 
 
 def obtener_vehiculo_del_usuario(vehiculo_id, usuario):
@@ -167,15 +171,17 @@ def procesar_formulario_vehiculo(request, vehiculo_a_editar=None):
         return form, False
 
     # Guardar el objeto del formulario en memoria sin guardar a BD todavía
-    nuevo_vehiculo = form.save(commit=False)
+    vehiculo = form.save(commit=False)
 
     # Si es creación (no hay vehículo a editar)
     if vehiculo_a_editar is None:
         # Asignar el usuario autenticado como dueño del vehículo
-        nuevo_vehiculo.duenio = request.user
-
-    # Guardar el vehículo en la base de datos
-    modificar_datos(nuevo_vehiculo)
+        vehiculo.duenio = request.user
+        # Guardar como alta de nuevo vehículo
+        agregar_vehiculo(vehiculo)
+    else:
+        # Guardar cambios de un vehículo ya existente
+        modificar_datos(vehiculo)
 
     # Mostrar mensaje de éxito apropiado según si es edición o creación
     if vehiculo_a_editar:
