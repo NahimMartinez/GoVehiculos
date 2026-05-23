@@ -27,7 +27,7 @@ def reservar_view(request):
 
 # Método para verificar si un usuario es cliente o socio
 def _usuario_es_cliente(user):
-    return user.groups.filter(name=ROLE_CLIENTE or ROLE_SOCIO).exists()
+    return user.groups.filter(name__in=[ROLE_CLIENTE, ROLE_SOCIO]).exists()
 
 # Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
 def _obtener_estado(nombre_estado):
