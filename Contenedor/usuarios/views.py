@@ -127,6 +127,7 @@ def registro_view(request):
     if request.method == 'POST':
         # Obtener usuario logueado actual (None si no está autenticado)
         usuario = request.user if request.user.is_authenticated else None
+        es_admin = bool(usuario and usuario.groups.filter(name="Administradores").exists())
         # Crear formulario con datos del POST y usuario logueado para validaciones
         form = RegistroUsuarioForm(request.POST, usuario_logueado=usuario)
         if form.is_valid():
@@ -147,11 +148,12 @@ def registro_view(request):
     else:
         # Para solicitud GET, obtener usuario logueado si existe
         usuario = request.user if request.user.is_authenticated else None
+        es_admin = bool(usuario and usuario.groups.filter(name="Administradores").exists())
         # Crear formulario vacío con contexto de usuario logueado
         form = RegistroUsuarioForm(usuario_logueado=usuario)
         
     # Renderizar template con el formulario de registro
-    return render(request, 'usuarios/registro.html', {'form': form})
+    return render(request, 'usuarios/registro.html', {'form': form, 'es_admin': es_admin})
 
 def login_view(request):
     """Vista para autenticación (login) de usuarios.
