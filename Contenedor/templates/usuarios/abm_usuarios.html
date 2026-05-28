@@ -7,6 +7,16 @@
 
 {% block contenido %}
 <section class="py-12 px-6 max-w-7xl mx-auto min-h-screen">
+    {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+                <div class="rounded-lg border px-4 py-3 text-sm font-medium {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <div class="mb-8 border-b border-slate-200 pb-5 flex justify-between items-end">
         <div>
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Panel de Administración</h1>

@@ -4,6 +4,7 @@ from .models import Usuario
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .forms import RegistroUsuarioForm, EditarUsuarioForm
@@ -142,8 +143,13 @@ def registro_view(request):
             # Si el grupo existe, asignarlo al nuevo usuario
             if grupo:
                 nuevo_usuario.groups.add(grupo)
-            
-            # Redirigir a la página de login para que ingrese con sus credenciales
+
+            # Si el alta la hace un admin desde ABM, volver al panel con confirmación.
+            if es_admin:
+                messages.success(request, 'Usuario creado correctamente.')
+                return redirect('abm_usuarios')
+
+            # Para auto-registro público, redirigir al login.
             return redirect('login')
     else:
         # Para solicitud GET, obtener usuario logueado si existe
