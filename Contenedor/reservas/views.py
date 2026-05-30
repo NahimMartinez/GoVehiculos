@@ -1,5 +1,4 @@
 import json
-
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -22,13 +21,17 @@ from usuarios.signals import ROLE_CLIENTE, ROLE_SOCIO
 from vehiculos.models import Vehiculo
 
    
+def obtener_metodos_de_pago():
+    return MetodoPago.objects.all()
 
 # Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
 def reservar_view(request):
     usuario = request.user
+    metodos = obtener_metodos_de_pago()
 
     contexto = {
-        'usuario': usuario
+        'usuario': usuario,
+        'metodos': metodos
     }
 
     return render(request, 'reservas/reserva.html', contexto)

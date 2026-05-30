@@ -15,11 +15,11 @@
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-2">
                         <label for="nombre" class="text-xs font-bold uppercase text-outline">Nombre</label>
-                        <input id="nombre" name="nombre" type="text" readonly value="{{ usuario.first_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="first_name" name="nombre" type="text" readonly value="{{ usuario.first_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                     <div class="space-y-2">
                         <label for="apellido" class="text-xs font-bold uppercase text-outline">Apellido</label>
-                        <input id="apellido" name="apellido" type="text" readonly value="{{ usuario.last_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="last_name" name="apellido" type="text" readonly value="{{ usuario.last_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                 </div>
 
@@ -58,10 +58,9 @@
                         <label for="metodo_pago" class="text-xs font-bold uppercase text-outline">Metodo de pago</label>
                         <select id="metodo_pago" name="metodo_pago" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                             <option value="">Seleccionar</option>
-                            <option value="credito">Tarjeta de credito</option>
-                            <option value="debito">Tarjeta de debito</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="efectivo">Efectivo</option>
+                            {% for metodo in metodos %}
+                                <option value="{{ metodo.id }}"> {{ metodo.nombre }} </option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="space-y-2">
