@@ -25,8 +25,8 @@ from vehiculos.models import Vehiculo
 def reservar_view(request):
     return render(request, 'reservas/reserva.html')
 
-# Método para verificar si un usuario es cliente o socio
-def _usuario_es_cliente(user):
+# Método para verificar si un usuario es apto para reservar
+def _usuario_valido(user):
     return user.groups.filter(name__in=[ROLE_CLIENTE, ROLE_SOCIO]).exists()
 
 # Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
@@ -121,9 +121,9 @@ def crear_reserva_view(request):
             status=401,
         )
 
-    if not _usuario_es_cliente(request.user):
+    if not _usuario_valido(request.user):
         return JsonResponse(
-            {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente pueden reservar.'},
+            {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente/Socio pueden reservar.'},
             status=403,
         )
 
@@ -187,9 +187,9 @@ class ReservaViewSet(
         ).order_by('-fecha_reserva')
 
     def create(self, request, *args, **kwargs):
-        if not _usuario_es_cliente(request.user):
+        if not _usuario_valido(request.user):
             return Response(
-                {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente pueden reservar.'},
+                {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente/Socio pueden reservar.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
