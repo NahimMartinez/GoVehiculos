@@ -21,9 +21,17 @@ from .serializer import (
 from usuarios.signals import ROLE_CLIENTE, ROLE_SOCIO
 from vehiculos.models import Vehiculo
 
+   
+
 # Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
 def reservar_view(request):
-    return render(request, 'reservas/reserva.html')
+    usuario = request.user
+
+    contexto = {
+        'usuario': usuario
+    }
+
+    return render(request, 'reservas/reserva.html', contexto)
 
 # Método para verificar si un usuario es apto para reservar
 def _usuario_valido(user):

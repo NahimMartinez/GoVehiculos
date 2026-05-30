@@ -15,36 +15,29 @@
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-2">
                         <label for="nombre" class="text-xs font-bold uppercase text-outline">Nombre</label>
-                        <input id="nombre" name="nombre" type="text" placeholder="Ej: Juan" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="nombre" name="nombre" type="text" readonly value="{{ usuario.first_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                     <div class="space-y-2">
                         <label for="apellido" class="text-xs font-bold uppercase text-outline">Apellido</label>
-                        <input id="apellido" name="apellido" type="text" placeholder="Ej: Perez" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="apellido" name="apellido" type="text" readonly value="{{ usuario.last_name }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                 </div>
 
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-2">
                         <label for="dni" class="text-xs font-bold uppercase text-outline">DNI</label>
-                        <input id="dni" name="dni" type="text" placeholder="Ej: 40111222" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="dni" name="dni" type="text" readonly value="{{ usuario.dni }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                     <div class="space-y-2">
                         <label for="email" class="text-xs font-bold uppercase text-outline">Email</label>
-                        <input id="email" name="email" type="email" placeholder="Ej: cliente@mail.com" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
+                        <input id="email" name="email" type="email" readonly value="{{ usuario.email }}" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
                     </div>
                 </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <div class="space-y-2">
-                        <label for="telefono" class="text-xs font-bold uppercase text-outline">Telefono</label>
-                        <input id="telefono" name="telefono" type="tel" placeholder="Ej: +54 11 5555 1234" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required>
-                    </div>
-                </div>
             </fieldset>
 
             <fieldset class="space-y-6">
                 <legend class="text-sm font-bold uppercase tracking-wide text-outline">Datos de la reserva</legend>
-
                 <div class="grid gap-6 md:grid-cols-2">
                     <div class="space-y-2">
                         <label for="fecha_retiro" class="text-xs font-bold uppercase text-outline">Fecha de inicio</label>
