@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db.models import Q
 
 from .forms import ReservarVehiculoForm
 from .models import EstadoReserva, MetodoPago, Pago, Reserva
@@ -22,10 +23,14 @@ from vehiculos.models import Vehiculo
 
 
 def obtener_reservas_usuario_view(request):
-    reservas = Reserva.objects.filter(cliente=request.user)
+    reservas = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca').filter(cliente=request.user).order_by('-fecha_reserva')
+
+    activos = reservas.filter(Q(estado_reserva__nombre__iexact='Pendiente') | Q(estado_reserva__nombre__iexact='Confirmada'))
+    historial = reservas.exclude(id__in=activos.values_list('id', flat=True))
 
     contexto = {
-        'reservas': reservas
+        'activos': activos,
+        'historial': historial,
     }
 
     return render(request, 'reservas/mis_reservas.html', contexto)
