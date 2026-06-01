@@ -20,7 +20,16 @@ from .serializer import (
 from usuarios.signals import ROLE_CLIENTE, ROLE_SOCIO
 from vehiculos.models import Vehiculo
 
-   
+
+def obtener_reservas_usuario_view(request):
+    reservas = Reserva.objects.filter(cliente=request.user)
+
+    contexto = {
+        'reservas': reservas
+    }
+
+    return render(request, 'reservas/mis_reservas.html', contexto)
+
 def obtener_metodos_de_pago():
     return MetodoPago.objects.all()
 
