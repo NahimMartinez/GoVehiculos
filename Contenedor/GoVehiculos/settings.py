@@ -141,3 +141,5 @@ REST_FRAMEWORK = {
 # Evita el redirect por defecto a /accounts/profile/ tras iniciar sesión.
 LOGIN_REDIRECT_URL = '/api/v1/'
 LOGOUT_REDIRECT_URL = '/api/v1/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
