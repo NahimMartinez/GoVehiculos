@@ -42,10 +42,31 @@ def obtener_metodos_de_pago():
 def reservar_view(request):
     usuario = request.user
     metodos = obtener_metodos_de_pago()
+    puede_reservar = request.user.is_authenticated and _usuario_valido(request.user)
+    mensaje_reserva = None
+
+    if not request.user.is_authenticated:
+        mensaje_reserva = 'Debes iniciar sesion para reservar.'
+    elif not puede_reservar:
+        mensaje_reserva = 'Solo los usuarios con rol Cliente/Socio pueden reservar.'
+
+    vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
+        activo=True,
+        esta_aprobado=True,
+    ).order_by('modelo__marca__nombre', 'modelo__nombre', 'matricula')
+
+    vehiculo_seleccionado = None
+    vehiculo_id = request.GET.get('vehiculo_id')
+    if vehiculo_id:
+        vehiculo_seleccionado = vehiculos_disponibles.filter(id=vehiculo_id).first()
 
     contexto = {
         'usuario': usuario,
-        'metodos': metodos
+        'metodos': metodos,
+        'vehiculos_disponibles': vehiculos_disponibles,
+        'vehiculo_seleccionado': vehiculo_seleccionado,
+        'puede_reservar': puede_reservar,
+        'mensaje_reserva': mensaje_reserva,
     }
 
     return render(request, 'reservas/reserva.html', contexto)
@@ -106,7 +127,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
         if existe_conflicto:
             return (
                 None,
-                'Alguien mas rapido acaba de reservar este vehiculo para esas fechas. Por favor, intenta con otro rango.',
+                'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
             )
 
         estado_pendiente = _obtener_estado('Pendiente')
@@ -138,32 +159,105 @@ def _payload_reserva(request):
     return request.POST
 
 
+def _solicitud_prefiere_json(request):
+    return bool(request.content_type and 'application/json' in request.content_type)
+
+
+def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formulario=None, reserva=None, mensaje_reserva=None, tipo_reserva=None, errores=None):
+    vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
+        activo=True,
+        esta_aprobado=True,
+    ).order_by('modelo__marca__nombre', 'modelo__nombre', 'matricula')
+
+    if vehiculo_seleccionado is None:
+        vehiculo_id = request.GET.get('vehiculo_id')
+        if vehiculo_id:
+            vehiculo_seleccionado = vehiculos_disponibles.filter(id=vehiculo_id).first()
+
+    return {
+        'usuario': request.user,
+        'metodos': obtener_metodos_de_pago(),
+        'vehiculos_disponibles': vehiculos_disponibles,
+        'vehiculo_seleccionado': vehiculo_seleccionado,
+        'puede_reservar': request.user.is_authenticated and _usuario_valido(request.user),
+        'mensaje_reserva': mensaje_reserva,
+        'tipo_reserva': tipo_reserva,
+        'reserva_creada': reserva,
+        'errores_reserva': errores or {},
+        'datos_formulario': datos_formulario or {},
+    }
+
+
+def _respuesta_reserva_html(request, *, mensaje_reserva, tipo_reserva='error', reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None, status_code=200):
+    contexto = _contexto_reserva_base(
+        request,
+        vehiculo_seleccionado=vehiculo_seleccionado,
+        datos_formulario=datos_formulario,
+        reserva=reserva,
+        mensaje_reserva=mensaje_reserva,
+        tipo_reserva=tipo_reserva,
+        errores=errores,
+    )
+    return render(request, 'reservas/reserva.html', contexto, status=status_code)
+
+
+def _respuesta_reserva(request, *, ok, mensaje, status_code, reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None):
+    if _solicitud_prefiere_json(request):
+        payload = {'ok': ok, 'mensaje': mensaje}
+        if reserva is not None:
+            payload['reserva'] = reserva
+        if errores:
+            payload['errores'] = errores
+        return JsonResponse(payload, status=status_code)
+
+    return _respuesta_reserva_html(
+        request,
+        mensaje_reserva=mensaje,
+        tipo_reserva='success' if ok else 'error',
+        reserva=reserva,
+        errores=errores,
+        datos_formulario=datos_formulario,
+        vehiculo_seleccionado=vehiculo_seleccionado,
+        status_code=status_code,
+    )
+
+
 @require_POST
 def crear_reserva_view(request):
     if not request.user.is_authenticated:
-        return JsonResponse(
-            {'ok': False, 'mensaje': 'Debes iniciar sesion para reservar.'},
-            status=401,
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='Debes iniciar sesion para reservar.',
+            status_code=401,
         )
 
     if not _usuario_valido(request.user):
-        return JsonResponse(
-            {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente/Socio pueden reservar.'},
-            status=403,
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='Solo los usuarios con rol Cliente/Socio pueden reservar.',
+            status_code=403,
         )
 
     payload = _payload_reserva(request)
     if payload is None:
-        return JsonResponse(
-            {'ok': False, 'mensaje': 'El cuerpo de la solicitud JSON es invalido.'},
-            status=400,
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='El cuerpo de la solicitud es invalido.',
+            status_code=400,
         )
 
     form = ReservarVehiculoForm(payload)
     if not form.is_valid():
-        return JsonResponse(
-            {'ok': False, 'errores': form.errors.get_json_data()},
-            status=400,
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='Revisá los campos del formulario.',
+            status_code=400,
+            errores=form.errors.get_json_data(),
+            datos_formulario=payload,
         )
 
     vehiculo = form.cleaned_data['vehiculo']
@@ -177,18 +271,22 @@ def crear_reserva_view(request):
     )
 
     if mensaje_error:
-        return JsonResponse(
-            {'ok': False, 'mensaje': mensaje_error},
-            status=400,
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje=mensaje_error,
+            status_code=400,
+            datos_formulario=payload,
+            vehiculo_seleccionado=vehiculo,
         )
 
-    return JsonResponse(
-        {
-            'ok': True,
-            'mensaje': 'Reserva creada correctamente.',
-            'reserva': _reserva_a_dict(reserva),
-        },
-        status=201,
+    return _respuesta_reserva(
+        request,
+        ok=True,
+        mensaje='Reserva creada correctamente.',
+        status_code=201,
+        reserva=_reserva_a_dict(reserva),
+        vehiculo_seleccionado=vehiculo,
     )
 
 

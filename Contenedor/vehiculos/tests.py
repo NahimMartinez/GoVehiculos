@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.urls import reverse
 
-
 # =====================================================================
 # PRUEBA 1: METODO BUSCAR VEHICULO
 # =====================================================================
