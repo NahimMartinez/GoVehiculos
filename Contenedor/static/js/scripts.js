@@ -34,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		return Number.isFinite(parsed) ? parsed : 0;
 	};
 
+	const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+	const paymentStrategies = {
+		'tarjeta_credito': { factor: 1.1, help: 'Tarjeta de crédito aplica un recargo del 10%.' },
+		'tarjeta_debito': { factor: 1.0, help: 'Tarjeta de débito mantiene el precio base.' },
+		'transferencia': { factor: 0.95, help: 'Transferencia aplica un descuento del 5%.' },
+	};
+
 	const getSelectedVehicleInfo = () => {
 		if (selectedVehicleCard) {
 			return {
@@ -81,8 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		const { name: vehicleName, price: pricePerDay } = getSelectedVehicleInfo();
 		const selectedMethod = metodoSelect && metodoSelect.value ? metodoSelect.options[metodoSelect.selectedIndex] : null;
 		const methodName = selectedMethod && selectedMethod.value ? selectedMethod.textContent.trim() : 'Seleccionar';
+		const normalizedMethod = selectedMethod && selectedMethod.value
+			? selectedMethod.getAttribute('data-metodo-clave') || normalizeText(selectedMethod.value)
+			: '';
+		const strategy = paymentStrategies[normalizedMethod] || { factor: 1, help: 'Elegí un método de pago para ver el cálculo.' };
 		const days = calculateDays();
-		const total = days > 0 && pricePerDay > 0 ? days * pricePerDay : 0;
+		const baseTotal = days > 0 && pricePerDay > 0 ? days * pricePerDay : 0;
+		const total = baseTotal > 0 ? baseTotal * strategy.factor : 0;
 
 		resumenMetodo.textContent = methodName;
 		resumenDias.textContent = String(days);
@@ -93,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}).format(total);
 
 		if (methodName !== 'Seleccionar' && vehicleName && days > 0) {
-			resumenAyuda.textContent = `Método elegido: ${methodName}. ${vehicleName} se calcula a $${pricePerDay.toFixed(2)} por día.`;
+			resumenAyuda.textContent = strategy.help;
 			return;
 		}
 

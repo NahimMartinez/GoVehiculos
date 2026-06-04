@@ -22,6 +22,12 @@ from .serializer import (
 from usuarios.signals import ROLE_CLIENTE, ROLE_SOCIO
 from vehiculos.models import Vehiculo
 
+from .estrategias import (
+    ContextoPago,
+    obtener_estrategia_pago,
+)
+from decimal import Decimal
+
 
 def obtener_reservas_usuario_view(request):
     reservas = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca').filter(cliente=request.user).order_by('-fecha_reserva')
@@ -104,7 +110,7 @@ def _reserva_a_dict(reserva):
     }
 
 
-def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
+def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin, metodo_pago_estrategia):
     if vehiculo.duenio_id == usuario.id:
         return None, 'No puedes reservar un vehiculo propio.'
 
@@ -135,7 +141,9 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
         cantidad_dias = (fecha_fin - fecha_inicio).days
 
         # Calculamos el monto total de la reserva multiplicando la cantidad de días por el precio por día del vehículo. Esto nos da el costo total que el cliente deberá pagar por la reserva, lo que es esencial para el proceso de pago y para mostrar al cliente el costo de su reserva antes de confirmarla.
-        monto_total = cantidad_dias * vehiculo_bloqueado.precio_x_dia
+        monto_base = cantidad_dias * vehiculo_bloqueado.precio_x_dia
+        contexto_pago = ContextoPago(metodo_pago_estrategia)
+        monto_total = contexto_pago.ejecutar_estrategia(monto_base).quantize(Decimal('0.01'))
 
         reserva = Reserva.objects.create(
             monto_total=monto_total,
@@ -250,25 +258,6 @@ def crear_reserva_view(request):
             status_code=400,
         )
 
-    metodo_pago_id = payload.get('metodo_pago') if hasattr(payload, 'get') else None
-    if not metodo_pago_id:
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='Debes seleccionar un metodo de pago.',
-            status_code=400,
-            datos_formulario=payload,
-        )
-
-    if not MetodoPago.objects.filter(id=metodo_pago_id).exists():
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='El metodo de pago seleccionado no es valido.',
-            status_code=400,
-            datos_formulario=payload,
-        )
-
     form = ReservarVehiculoForm(payload)
     if not form.is_valid():
         return _respuesta_reserva(
@@ -283,11 +272,14 @@ def crear_reserva_view(request):
     vehiculo = form.cleaned_data['vehiculo']
     fecha_inicio = form.cleaned_data['fecha_inicio']
     fecha_fin = form.cleaned_data['fecha_fin']
+    metodo_pago_nombre = form.cleaned_data['metodo_pago_nombre']
+    metodo_pago_estrategia = form.cleaned_data['metodo_pago_estrategia']
     reserva, mensaje_error = _crear_reserva_en_transaccion(
         usuario=request.user,
         vehiculo=vehiculo,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
+        metodo_pago_estrategia=metodo_pago_estrategia,
     )
 
     if mensaje_error:
@@ -359,6 +351,7 @@ class ReservaViewSet(
             vehiculo=form.cleaned_data['vehiculo'],
             fecha_inicio=form.cleaned_data['fecha_inicio'],
             fecha_fin=form.cleaned_data['fecha_fin'],
+            metodo_pago_estrategia=form.cleaned_data['metodo_pago_estrategia'],
         )
         if mensaje_error:
             return Response(

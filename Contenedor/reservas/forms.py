@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from .estrategias import obtener_estrategia_pago
 from vehiculos.models import Vehiculo
 
 
@@ -9,6 +10,7 @@ class ReservarVehiculoForm(forms.Form):
 	vehiculo_id = forms.IntegerField(min_value=1)
 	fecha_inicio = forms.DateField()
 	fecha_fin = forms.DateField()
+	metodo_pago_nombre = forms.CharField(max_length=30)
 
 	MAX_DIAS_RESERVA = 30 # Limite máximo de días para una reserva, lo que ayuda a controlar la duración de las reservas y evitar bloqueos prolongados de vehículos.
 
@@ -23,6 +25,17 @@ class ReservarVehiculoForm(forms.Form):
 
 		self.cleaned_data['vehiculo'] = vehiculo
 		return vehiculo_id
+
+	def clean_metodo_pago_nombre(self):
+		metodo_pago_nombre = self.cleaned_data['metodo_pago_nombre']
+
+		try:
+			estrategia = obtener_estrategia_pago(metodo_pago_nombre)
+		except ValueError as exc:
+			raise ValidationError('Debes seleccionar un metodo de pago valido.') from exc
+
+		self.cleaned_data['metodo_pago_estrategia'] = estrategia
+		return metodo_pago_nombre
 
     # El método clean se encarga de validar las fechas de inicio y fin de la reserva. Verifica que la fecha de inicio no esté en el pasado, que la fecha de fin sea posterior a la fecha de inicio, y que la duración total de la reserva no supere el límite máximo definido por MAX_DIAS_RESERVA. Si alguna de estas condiciones no se cumple, se añaden errores específicos a los campos correspondientes, lo que ayuda a garantizar que las reservas sean válidas y razonables.
 	def clean(self):

@@ -96,10 +96,10 @@
 
                     <div class="space-y-2">
                         <label for="metodo_pago" class="text-xs font-bold uppercase text-outline">Seleccionar método</label>
-                        <select id="metodo_pago" name="metodo_pago" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required data-metodo-select>
+                        <select id="metodo_pago" name="metodo_pago_nombre" class="w-full rounded-lg border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none focus:border-primary" required data-metodo-select>
                             <option value="">Seleccionar</option>
                             {% for metodo in metodos %}
-                                <option value="{{ metodo.id }}" {% if datos_formulario.metodo_pago|stringformat:'s' == metodo.id|stringformat:'s' %}selected{% endif %}>{{ metodo.nombre }}</option>
+                                <option value="{{ metodo.nombre }}" data-metodo-clave="{% if metodo.nombre == 'Tarjeta de crédito' %}tarjeta_credito{% elif metodo.nombre == 'Tarjeta de débito' %}tarjeta_debito{% elif metodo.nombre == 'Transferencia' %}transferencia{% endif %}" {% if datos_formulario.metodo_pago_nombre == metodo.nombre %}selected{% endif %}>{{ metodo.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>

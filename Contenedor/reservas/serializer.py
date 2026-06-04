@@ -19,6 +19,7 @@ class ReservaCreateSerializer(serializers.Serializer):
     vehiculo_id = serializers.IntegerField(min_value=1)
     fecha_inicio = serializers.DateField()
     fecha_fin = serializers.DateField()
+    metodo_pago_nombre = serializers.CharField(max_length=30)
 
 
 class ReservaSerializer(serializers.ModelSerializer):
