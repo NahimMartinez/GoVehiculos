@@ -23,18 +23,21 @@ class EstrategiaTarjetaDebito(EstrategiaPago):
 
 class EstrategiaTransferencia(EstrategiaPago):
     def calcular_total(self, monto_base: Decimal) -> Decimal:
-        # Aplica un 5% de descuento por pago en efectivo/transferencia
+        # Aplica un 5% de descuento por pago en transferencia
         descuento = monto_base * Decimal('0.05')
         return monto_base - descuento
 
 # 3. El Contexto
 class ContextoPago:
+    # Cuando se crea el contexto, se le asigna una estrategia concreta que va a usar.
     def __init__(self, estrategia: EstrategiaPago):
         self._estrategia = estrategia
 
+    # Permite que se cambie la estrategia en tiempo de ejecución, si el usuario decide cambiar su método de pago después de haber seleccionado uno inicialmente.
     def set_estrategia(self, estrategia: EstrategiaPago):
         self._estrategia = estrategia
 
+    # Ejecuta el método de cálculo dependiendo de la estrategia concreta que se le asignó.
     def ejecutar_estrategia(self, monto_base: Decimal) -> Decimal:
         return self._estrategia.calcular_total(monto_base)
 

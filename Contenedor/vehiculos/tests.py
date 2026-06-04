@@ -9,6 +9,7 @@ from PIL import Image
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.urls import reverse
+from django.db import IntegrityError, connection, transaction
 
 # =====================================================================
 # PRUEBA 1: METODO BUSCAR VEHICULO
@@ -203,51 +204,78 @@ class AgregarVehiculoTestCase(TestCase):
     def setUp(self):
         """
         Contexto (Arrange): Preparamos las dependencias obligatorias.
-        Creamos un usuario (Socio) y los datos del vehículo.
         """
-        self.usuario = Usuario.objects.create_user(username='socio1', email='socio1@test.com', password='123', dni='11111111')
-        
-        self.marca = Marca.objects.create(nombre="Chevrolet")
-        self.modelo = Modelo.objects.create(nombre="Cruze", marca=self.marca)
+        self.usuario = Usuario.objects.create_user(username='socio_add', email='add@test.com', password='123', dni='12345678')
+        self.marca = Marca.objects.create(nombre="Renault")
+        self.modelo = Modelo.objects.create(nombre="Sandero", marca=self.marca)
         self.tipo = TipoVehiculo.objects.create(nombre="Auto")
-        self.estado = EstadoVehiculo.objects.create(nombre="Excelente")
+        self.estado = EstadoVehiculo.objects.create(nombre="Disponible")
+        
+        # Guardamos un vehículo inicial para probar el caso de la patente duplicada
+        self.vehiculo_existente = Vehiculo.objects.create(
+            matricula="AG 123 CD", precio_x_dia=15000.0, modelo=self.modelo,
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, duenio=self.usuario, activo=True
+        )
 
-    def test_agregar_vehiculo_postcondiciones(self):
-        """
-        Prueba 1: Guardado exitoso y cumplimiento del Contrato de Operación.
-        Verifica que una instancia en memoria se persista físicamente en la BD.
-        """
-        # Creamos la instancia SOLO EN MEMORIA. 
-        # Usamos Vehiculo(...)
+    # CASO 1: Camino Feliz
+    def test_agregar_vehiculo_camino_feliz(self):
+        """Verifica que un vehículo válido se guarde físicamente en la BD."""
         nuevo_vehiculo = Vehiculo(
-            matricula="AD 456 WW",
-            precio_x_dia=20000.00,
-            modelo=self.modelo,
-            tipo_vehiculo=self.tipo,
-            estado_vehiculo=self.estado,
-            duenio=self.usuario, 
-            activo=True,
-            esta_aprobado=True
+            matricula="AA 111 AA", precio_x_dia=15000.0, modelo=self.modelo,
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, duenio=self.usuario, activo=True
         )
         
-        # Verificamos que antes de la operación el objeto NO tiene ID 
-        # y la base de datos está vacía.
-        self.assertIsNone(nuevo_vehiculo.id)
-        self.assertEqual(Vehiculo.objects.count(), 0)
-
-        # 2. Ejecución (Act): Invocamos la operación crítica
         vehiculo_retornado = agregar_vehiculo(nuevo_vehiculo)
-
-        # 3. Comprobación (Assert): Postcondiciones del contrato
-        # El sistema le asignó una Primary Key (ID)
+        
         self.assertIsNotNone(vehiculo_retornado.id)
+        # El conteo debe ser 2 (el del setUp + este nuevo)
+        self.assertEqual(Vehiculo.objects.count(), 2) 
+
+    # CASO 2: Falla de Unicidad (Matrícula Duplicada)
+    def test_agregar_vehiculo_matricula_duplicada_lanza_error(self):
+        """Verifica que la restricción UNIQUE de la BD bloquee patentes repetidas."""
+        vehiculo_duplicado = Vehiculo(
+            matricula="AG 123 CD", 
+            precio_x_dia=15000.0, modelo=self.modelo,
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, duenio=self.usuario, activo=True
+        )
         
-        # Físicamente hay 1 registro insertado en la tabla Vehiculo
-        self.assertEqual(Vehiculo.objects.count(), 1)
+        # assertRaises verifica que la base de datos lance la excepción IntegrityError
+        with self.assertRaises(IntegrityError):
+            agregar_vehiculo(vehiculo_duplicado)
+
+    # CASO 4: Dato Faltante (NOT NULL)
+    def test_agregar_vehiculo_dato_faltante_lanza_error(self):
+        """Verifica que la restricción NOT NULL de la BD bloquee el guardado si falta un dato obligatorio."""
+        vehiculo_incompleto = Vehiculo(
+            matricula=None, # <-- Usamos None en la patente porque es estrictamente obligatorio en BD
+            precio_x_dia=15000.0, modelo=self.modelo,
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, duenio=self.usuario, activo=True
+        )
         
-        # El registro recuperado de la BD coincide con el que enviamos
-        vehiculo_en_bd = Vehiculo.objects.first()
-        self.assertEqual(vehiculo_en_bd.matricula, "AD 456 WW")
+        with self.assertRaises(IntegrityError):
+            agregar_vehiculo(vehiculo_incompleto)
+
+    # CASO 5: Integridad Referencial (Modelo Inexistente)
+    def test_agregar_vehiculo_modelo_inexistente_lanza_error(self):
+        """Verifica que no se pueda asociar el auto a un ID de modelo que no existe."""
+        vehiculo_modelo_roto = Vehiculo(
+            matricula="CC 333 CC", precio_x_dia=15000.0, 
+            modelo_id=9999, # <-- Ponemos un ID de modelo que jamás creamos
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, duenio=self.usuario, activo=True
+        )
+        
+        # Esperamos que salte el IntegrityError
+        with self.assertRaises(IntegrityError):
+            
+            # Envolvemos la prueba en una transacción atómica
+            with transaction.atomic():
+                agregar_vehiculo(vehiculo_modelo_roto)
+                
+                # Forzamos la validación en SQLite. Al saltar el error acá,
+                # la transacción atómica hace un ROLLBACK automático y borra la basura.
+                if connection.vendor == 'sqlite':
+                    connection.check_constraints()
 
 
 
