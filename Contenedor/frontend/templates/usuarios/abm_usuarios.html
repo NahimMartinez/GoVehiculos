@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head_extra %}
+<script src="{% static 'js/pages/usuarios-abm.js' %}" defer></script>
+{% endblock %}
+
+{% block contenido %}
+<section class="py-12 px-6 max-w-7xl mx-auto min-h-screen">
+    {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+                <div class="rounded-lg border px-4 py-3 text-sm font-medium {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800{% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="mb-8 border-b border-slate-200 pb-5 flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Panel de Administración</h1>
+            <p class="text-slate-500 mt-2">Gestión de usuarios del sistema.</p>
+        </div>
+        <a href="{% url 'registro' %}" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+            + Nuevo Usuario
+        </a>
+    </div>
+
+    <form method="get" class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_220px_auto_auto] md:items-end" data-users-filter-form>
+        <div>
+            <label for="users-search" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar usuario</label>
+            <input
+                id="users-search"
+                type="search"
+                name="q"
+                value="{{ busqueda }}"
+                placeholder="Buscar por usuario, email o grupo"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                data-users-search-input
+            >
+        </div>
+        <div>
+            <label for="users-group-filter" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Filtrar por grupo</label>
+            <select
+                id="users-group-filter"
+                name="grupo"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                data-users-group-select
+            >
+                <option value="">Todos los grupos</option>
+                {% for group in grupos_disponibles %}
+                    <option value="{{ group.name }}" {% if group.name == grupo_seleccionado %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            Buscar
+        </button>
+        <a href="{% url 'abm_usuarios' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-600 hover:bg-slate-50">
+            Limpiar
+        </a>
+        <p class="text-xs font-medium text-slate-500 md:col-span-4">
+            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ paginator.count }} usuarios
+        </p>
+    </form>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 text-sm uppercase tracking-wider">
+                        <th class="p-5 font-bold">Usuario</th>
+                        <th class="p-5 font-bold">Grupo</th>
+                        <th class="p-5 font-bold">Email</th>
+                        <th class="p-5 font-bold">Fecha de Registro</th>
+                        <th class="p-5 font-bold">Estado</th>
+                        <th class="p-5 font-bold text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    
+                    {% for u in usuarios %}
+                    <tr class="hover:bg-slate-50 transition-colors group">
+                        
+                        <td class="p-5 font-bold text-slate-800">
+                            {{ u.username }}
+                        </td>
+
+                        <td class="p-5 text-slate-600 text-sm">
+                            {% for grupo in u.groups.all %}
+                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                    {{ grupo.name }}
+                                </span>{% if not forloop.last %} {% endif %}
+                            {% empty %}
+                                <span class="text-slate-400">Sin grupo</span>
+                            {% endfor %}
+                        </td>
+                        
+                        <td class="p-5 text-slate-600">{{ u.email }}</td>
+                        
+                        <td class="p-5 text-slate-500 text-sm">{{ u.date_joined|date:"d/m/Y" }}</td>
+                        
+                        <td class="p-5">
+                            {% if u.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full"></span> Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span> Suspendido
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="p-5 text-right flex justify-end gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <a href="{% url 'editar_usuario' u.id %}" class="text-slate-400 hover:text-blue-600 font-medium text-sm transition-colors">
+                                Editar
+                            </a>
+                            {% if u != user%}
+                                {% if u.is_active %}
+                                    <form method="post" action="{% url 'suspender_usuario' u.id %}">
+                                        {% csrf_token %}
+                                        <button
+                                            type="button"
+                                            class="text-slate-400 hover:text-red-600 font-medium text-sm transition-colors"
+                                            data-user-action-trigger
+                                            data-action-url="{% url 'suspender_usuario' u.id %}"
+                                            data-action-title="Dar de baja usuario"
+                                            data-action-message="¿Estás seguro de dar de baja a {{ u.username }}?"
+                                            data-action-verb="dar de baja"
+                                            data-action-user="{{ u.username }}"
+                                        >
+                                            Suspender
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'reactivar_usuario' u.id %}">
+                                        {% csrf_token %}
+                                        <button
+                                            type="button"
+                                            class="text-slate-400 hover:text-green-600 font-medium text-sm transition-colors"
+                                            data-user-action-trigger
+                                            data-action-url="{% url 'reactivar_usuario' u.id %}"
+                                            data-action-title="Dar de alta usuario"
+                                            data-action-message="¿Estás seguro de dar de alta a {{ u.username }}?"
+                                            data-action-verb="dar de alta"
+                                            data-action-user="{{ u.username }}"
+                                        >
+                                            Reactivar
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-10 text-center text-slate-500 bg-slate-50">
+                            No se encontraron usuarios para la búsqueda/filtro seleccionado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginación de usuarios">
+        <p class="text-sm text-slate-500">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </p>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Anterior
+                </a>
+            {% else %}
+                <span class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-300">
+                    Anterior
+                </span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                    <span class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_query_params %}&{{ current_query_params }}{% endif %}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Siguiente
+                </a>
+            {% else %}
+                <span class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-300">
+                    Siguiente
+                </span>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+</section>
+
+<div id="user-action-modal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" data-modal-backdrop></div>
+    <div class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5 text-white">
+            <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+                    <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                    <h2 id="user-action-modal-title" class="text-lg font-bold tracking-tight">Confirmar acción</h2>
+                    <p class="text-sm text-white/70">Revisá antes de continuar</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-6">
+            <p id="user-action-modal-message" class="text-sm leading-6 text-slate-600"></p>
+            <div class="mt-2 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                Esta acción cambiará el estado del usuario de forma inmediata.
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" id="user-action-modal-cancel" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Cancelar
+                </button>
+                <form id="user-action-modal-form" method="post" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" id="user-action-modal-confirm" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                        Confirmar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

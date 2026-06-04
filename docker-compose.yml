@@ -1,22 +1,18 @@
-version: '3.8'
-
 services:
   web:
     # Le dice a Compose: "Construí el contenedor usando el Dockerfile que está en esta misma carpeta (.)"
     build: .
     
-    # Este es el comando que arranca tu servidor. 
-    # Como manage.py está en la carpeta Contenedor, la ruta es Contenedor/manage.py.
-    # El 0.0.0.0 es OBLIGATORIO en Docker para que la red virtual se comunique con el navegador.
-    command: python Contenedor/manage.py runserver 0.0.0.0:8000
+    # NUEVO: Le decimos a Docker que se posicione directamente en la carpeta del backend
+    working_dir: /app/Contenedor/backend
     
-    # LOS VOLÚMENES:
-    # Esto crea un "portal mágico" entre tu Windows y el Contenedor. 
-    # Significa que si vos guardás un cambio en VS Code, se refleja instantáneamente adentro 
-    # de Docker sin tener que volver a construir nada.
+    # Al estar ya posicionados en el backend, el comando vuelve a ser limpio y corto
+    command: python manage.py runserver 0.0.0.0:8000
+    
+    # LOS VOLÚMENES: El portal mágico con tu Windows
     volumes:
       - .:/app
       
-    # Mapeo de puertos: "Conectá el puerto 8000 de mi Windows con el 8000 del contenedor"
+    # Mapeo de puertos
     ports:
       - "8000:8000"
