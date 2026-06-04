@@ -9,6 +9,24 @@
 {% endblock %}
 
 {% block contenido %}
+{% if messages %}
+<section class="bg-surface px-8 pt-8">
+    <div class="max-w-screen-2xl mx-auto space-y-4">
+        {% for message in messages %}
+        <div data-message-banner class="rounded-xl border p-4 shadow-sm flex items-start gap-3 {% if message.tags == 'success' %}border-tertiary bg-green-50 text-green-900{% elif message.tags == 'error' %}border-red-300 bg-red-50 text-red-900{% else %}border-blue-300 bg-blue-50 text-blue-900{% endif %}">
+            <span class="material-symbols-outlined mt-0.5">
+                {% if message.tags == 'error' %}error{% elif message.tags == 'success' %}check_circle{% else %}info{% endif %}
+            </span>
+            <p class="font-semibold flex-1">{{ message }}</p>
+            <button type="button" data-dismiss-message class="rounded-full p-1 transition hover:bg-black/5" aria-label="Cerrar mensaje">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <section class="relative h-[921px] w-full overflow-hidden" data-carousel="hero">
     <div class="absolute inset-0 z-0">
         <div class="hero-slide absolute inset-0" data-slide>
@@ -113,9 +131,6 @@
             <div class="flex flex-col sm:flex-row gap-3">
                 <a href="{% url 'detalle_vehiculo' vehiculo.id %}" class="block text-center w-full py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
                     Ver detalle
-                </a>
-                <a href="{% url 'reserva_vehiculo' %}" class="block text-center w-full py-4 bg-surface-container-high text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
-                    Reservar ahora
                 </a>
             </div>
         </div>

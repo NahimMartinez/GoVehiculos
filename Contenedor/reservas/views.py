@@ -1,9 +1,10 @@
 import json
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.contrib import messages
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -280,14 +281,18 @@ def crear_reserva_view(request):
             vehiculo_seleccionado=vehiculo,
         )
 
-    return _respuesta_reserva(
-        request,
-        ok=True,
-        mensaje='Reserva creada correctamente.',
-        status_code=201,
-        reserva=_reserva_a_dict(reserva),
-        vehiculo_seleccionado=vehiculo,
-    )
+    if _solicitud_prefiere_json(request):
+        return _respuesta_reserva(
+            request,
+            ok=True,
+            mensaje='Reserva creada correctamente.',
+            status_code=201,
+            reserva=_reserva_a_dict(reserva),
+            vehiculo_seleccionado=vehiculo,
+        )
+
+    messages.success(request, 'Reserva creada correctamente.')
+    return redirect('inicio')
 
 
 class ReservaViewSet(
