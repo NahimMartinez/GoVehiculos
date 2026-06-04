@@ -250,6 +250,25 @@ def crear_reserva_view(request):
             status_code=400,
         )
 
+    metodo_pago_id = payload.get('metodo_pago') if hasattr(payload, 'get') else None
+    if not metodo_pago_id:
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='Debes seleccionar un metodo de pago.',
+            status_code=400,
+            datos_formulario=payload,
+        )
+
+    if not MetodoPago.objects.filter(id=metodo_pago_id).exists():
+        return _respuesta_reserva(
+            request,
+            ok=False,
+            mensaje='El metodo de pago seleccionado no es valido.',
+            status_code=400,
+            datos_formulario=payload,
+        )
+
     form = ReservarVehiculoForm(payload)
     if not form.is_valid():
         return _respuesta_reserva(
