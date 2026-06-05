@@ -1,7 +1,7 @@
 import json
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.contrib import messages
@@ -9,6 +9,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q
+from datetime import datetime, time, timedelta
 
 from .forms import ReservarVehiculoForm
 from .models import EstadoReserva, MetodoPago, Pago, Reserva
@@ -30,6 +31,8 @@ from decimal import Decimal
 
 
 def obtener_reservas_usuario_view(request):
+    _finalizar_reservas_vencidas(Reserva.objects.filter(cliente=request.user))
+
     reservas = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca').filter(cliente=request.user).order_by('-fecha_reserva')
 
     activos = reservas.filter(Q(estado_reserva__nombre__iexact='Pendiente') | Q(estado_reserva__nombre__iexact='Confirmada'))
@@ -88,6 +91,62 @@ def _obtener_estado(nombre_estado):
     if estado is None:
         estado = EstadoReserva.objects.create(nombre=nombre_estado)
     return estado
+
+
+def _reserva_esta_finalizada(reserva):
+    if not reserva.estado_reserva:
+        return False
+    return reserva.estado_reserva.nombre.strip().lower() == 'finalizada'
+
+
+def _reserva_ya_vencio(reserva):
+    return reserva.fecha_fin < timezone.localdate()
+
+
+def _finalizar_reservas_vencidas(reservas_qs):
+    estado_finalizada = _obtener_estado('Finalizada')
+    return reservas_qs.filter(fecha_fin__lt=timezone.localdate()).exclude(
+        estado_reserva__nombre__iexact='Cancelada',
+    ).exclude(
+        estado_reserva__nombre__iexact='Finalizada',
+    ).update(estado_reserva=estado_finalizada)
+
+def cancelar_reserva_view(request, reserva_id):
+    if request.method == 'POST':
+        #  Recuperamos la reserva asegurándonos de que pertenezca al usuario logueado 
+        reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
+
+        if _reserva_ya_vencio(reserva):
+            if not _reserva_esta_finalizada(reserva):
+                reserva.estado_reserva = _obtener_estado('Finalizada')
+                reserva.save(update_fields=['estado_reserva'])
+
+            messages.error(request, 'Esta reserva ya finalizó, por lo que no se puede cancelar.')
+            return redirect('mis_reservas')
+        
+        # Obtenemos el estado "Cancelada"
+        try:
+            estado_cancelada = EstadoReserva.objects.get(nombre__iexact='Cancelada')
+        except EstadoReserva.DoesNotExist:
+            messages.error(request, 'Error del sistema: El estado "Cancelada" no existe.')
+            return redirect('mis_reservas')
+
+        # Lógica de las 24 horas
+        # Como fecha_inicio es un DateField, lo convertimos a DateTime (asumiendo que el día empieza a las 00:00)
+        fecha_inicio_dt = timezone.make_aware(datetime.combine(reserva.fecha_inicio, time.min))
+        ahora = timezone.now()
+        
+        tiempo_restante = fecha_inicio_dt - ahora
+        
+        # Validamos y ejecutamos
+        if tiempo_restante >= timedelta(hours=24):
+            reserva.estado_reserva = estado_cancelada
+            reserva.save()
+            messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
+        else:
+            messages.error(request, 'Solo podés cancelar una reserva con al menos 24 horas de anticipación.')
+            
+    return redirect('mis_reservas')
 
 # Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado).
 def _reserva_esta_cancelada(reserva):
