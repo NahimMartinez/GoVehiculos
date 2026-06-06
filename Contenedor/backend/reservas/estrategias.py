@@ -9,6 +9,11 @@ class EstrategiaPago(ABC):
         """Calcula el monto final aplicando reglas específicas del método de pago."""
         pass
 
+    @abstractmethod
+    def procesar_pago(self, datos_pago: dict) -> dict:
+        """Simula el procesamiento del pago con la estrategia."""
+        pass
+
 # 2. Estrategias Concretas
 class EstrategiaTarjetaCredito(EstrategiaPago):
     def calcular_total(self, monto_base: Decimal) -> Decimal:
@@ -16,16 +21,40 @@ class EstrategiaTarjetaCredito(EstrategiaPago):
         recargo = monto_base * Decimal('0.10')
         return monto_base + recargo
 
+    def procesar_pago(self, datos_pago: dict) -> dict:
+        import time
+        time.sleep(2)  # Simula latencia de API
+        numero_tarjeta = datos_pago.get('numero_tarjeta', '')
+        if len(numero_tarjeta) == 16:
+            return {'exito': True, 'mensaje': 'Pago con tarjeta de crédito procesado exitosamente.'}
+        return {'exito': False, 'mensaje': 'Número de tarjeta de crédito inválido.'}
+
 class EstrategiaTarjetaDebito(EstrategiaPago):
     def calcular_total(self, monto_base: Decimal) -> Decimal:
         # La tarjeta de débito cobra el precio de lista (sin alteraciones)
         return monto_base
+
+    def procesar_pago(self, datos_pago: dict) -> dict:
+        import time
+        time.sleep(2)  # Simula latencia de API
+        numero_tarjeta = datos_pago.get('numero_tarjeta', '')
+        if len(numero_tarjeta) == 16:
+            return {'exito': True, 'mensaje': 'Pago con tarjeta de débito procesado exitosamente.'}
+        return {'exito': False, 'mensaje': 'Número de tarjeta de débito inválido.'}
 
 class EstrategiaTransferencia(EstrategiaPago):
     def calcular_total(self, monto_base: Decimal) -> Decimal:
         # Aplica un 5% de descuento por pago en transferencia
         descuento = monto_base * Decimal('0.05')
         return monto_base - descuento
+
+    def procesar_pago(self, datos_pago: dict) -> dict:
+        import time
+        time.sleep(2)  # Simula latencia de API
+        cbu = datos_pago.get('cbu', '')
+        if len(cbu) == 22:
+            return {'exito': True, 'mensaje': 'Transferencia validada exitosamente.'}
+        return {'exito': False, 'mensaje': 'CBU inválido. Debe tener 22 dígitos.'}
 
 # 3. El Contexto
 class ContextoPago:
@@ -40,6 +69,9 @@ class ContextoPago:
     # Ejecuta el método de cálculo dependiendo de la estrategia concreta que se le asignó.
     def ejecutar_estrategia(self, monto_base: Decimal) -> Decimal:
         return self._estrategia.calcular_total(monto_base)
+
+    def procesar_pago(self, datos_pago: dict) -> dict:
+        return self._estrategia.procesar_pago(datos_pago)
 
 
 def _normalizar_texto(texto: str) -> str:

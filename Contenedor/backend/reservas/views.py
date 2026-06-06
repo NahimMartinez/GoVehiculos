@@ -41,6 +41,7 @@ def obtener_reservas_usuario_view(request):
     contexto = {
         'activos': activos,
         'historial': historial,
+        'metodos': obtener_metodos_de_pago(),
     }
 
     return render(request, 'reservas/mis_reservas.html', contexto)
@@ -522,6 +523,39 @@ class PagoViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Regla de las 24 horas
+        fecha_inicio_dt = timezone.make_aware(datetime.combine(reserva.fecha_inicio, time.min))
+        ahora = timezone.now()
+        tiempo_restante = fecha_inicio_dt - ahora
+
+        if tiempo_restante < timedelta(hours=24):
+            estado_cancelada = _obtener_estado('Cancelada')
+            reserva.estado_reserva = estado_cancelada
+            reserva.save(update_fields=['estado_reserva'])
+            return Response(
+                {'ok': False, 'mensaje': 'El tiempo para pagar expiró. Debías pagar con al menos 24 horas de anticipación. La reserva ha sido cancelada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Si estamos a tiempo, aplicamos la estrategia para simular/procesar el pago
+        try:
+            estrategia = obtener_estrategia_pago(metodo_pago.nombre)
+        except ValueError as e:
+            return Response(
+                {'ok': False, 'mensaje': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        contexto_pago = ContextoPago(estrategia)
+        datos_pago = request.data.get('datos_pago', {})
+        resultado_pago = contexto_pago.procesar_pago(datos_pago)
+
+        if not resultado_pago.get('exito'):
+            return Response(
+                {'ok': False, 'mensaje': resultado_pago.get('mensaje')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         with transaction.atomic():
             pago = serializer.save()
 
@@ -530,7 +564,8 @@ class PagoViewSet(
                 reserva.estado_reserva = _obtener_estado('Confirmada')
                 reserva.save(update_fields=['estado_reserva'])
 
+        mensaje_exito = f"{resultado_pago.get('mensaje', '')} Pago registrado correctamente."
         return Response(
-            {'ok': True, 'mensaje': 'Pago registrado correctamente.', 'pago': PagoSerializer(pago).data},
+            {'ok': True, 'mensaje': mensaje_exito.strip(), 'pago': PagoSerializer(pago).data},
             status=status.HTTP_201_CREATED,
         )

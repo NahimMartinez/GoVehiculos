@@ -40,12 +40,20 @@
 								<div class="text-right flex flex-col justify-between items-end h-full min-h-[100px]">
 									<p class="text-xs text-on-surface-variant mb-4">Reservado: {{ reserva.fecha_reserva|date:"d/m/Y H:i" }}</p>
                                     
-									<form method="POST" action="{% url 'cancelar_reserva' reserva.id %}" data-cancel-reserva-form data-reserva-titulo="{{ reserva.vehiculo.modelo|default:'esta reserva' }}" data-reserva-detalle="Fecha: {{ reserva.fecha_inicio|date:'d/m/Y' }} al {{ reserva.fecha_fin|date:'d/m/Y' }}.">
-                                        {% csrf_token %}
-                                        <button type="submit" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded transition-colors duration-200 border border-red-200">
-                                            Cancelar Reserva
-                                        </button>
-                                    </form>
+                                    <!-- Test update to force reload --> 
+									<div class="flex flex-col gap-2">
+										{% if reserva.estado_reserva and reserva.estado_reserva.nombre|lower == 'pendiente' %}
+											<button type="button" class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded transition-colors duration-200 border border-blue-200 w-full text-center" onclick="abrirModalPago('{{ reserva.id }}', '{{ reserva.monto_total }}', '{{ reserva.vehiculo.modelo|default:'Vehículo eliminado' }}')">
+												Pagar
+											</button>
+										{% endif %}
+										<form method="POST" action="{% url 'cancelar_reserva' reserva.id %}" data-cancel-reserva-form data-reserva-titulo="{{ reserva.vehiculo.modelo|default:'esta reserva' }}" data-reserva-detalle="Fecha: {{ reserva.fecha_inicio|date:'d/m/Y' }} al {{ reserva.fecha_fin|date:'d/m/Y' }}.">
+											{% csrf_token %}
+											<button type="submit" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded transition-colors duration-200 border border-red-200 w-full text-center">
+												Cancelar Reserva
+											</button>
+										</form>
+									</div>
 
 								</div>
 							</div>
@@ -109,5 +117,195 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Modal de Pago -->
+	<div id="pagoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" aria-hidden="true">
+		<div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-surface-variant relative">
+			<div class="mb-4 flex items-start justify-between gap-4">
+				<div>
+					<p class="text-xs uppercase tracking-[0.2em] text-blue-600 font-semibold">Realizar Pago</p>
+					<h3 class="mt-1 text-xl font-semibold text-on-surface">Pagar reserva: <span id="pagoVehiculoModelo"></span></h3>
+					<p class="text-sm font-medium mt-1">Monto: $<span id="pagoMonto"></span></p>
+				</div>
+				<button type="button" class="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700" onclick="cerrarModalPago()" aria-label="Cerrar ventana de pago">✕</button>
+			</div>
+
+			<form id="formPago" class="space-y-4">
+				<input type="hidden" id="pagoReservaId" name="reserva_id">
+				
+				<div>
+					<label for="pagoMetodo" class="block text-sm font-medium text-on-surface mb-1">Método de pago</label>
+					<select id="pagoMetodo" name="metodo_pago" class="w-full rounded-md border border-surface-variant p-2 text-sm focus:border-blue-500 focus:ring-blue-500" required onchange="cambiarMetodoPago()">
+						<option value="">Seleccione un método</option>
+						{% for metodo in metodos %}
+							<option value="{{ metodo.id }}" data-nombre="{{ metodo.nombre }}">{{ metodo.nombre }}</option>
+						{% endfor %}
+					</select>
+				</div>
+
+				<div id="camposTarjeta" class="hidden space-y-3">
+					<div>
+						<label for="numeroTarjeta" class="block text-sm font-medium text-on-surface mb-1">Número de Tarjeta (16 dígitos)</label>
+						<input type="text" id="numeroTarjeta" name="numero_tarjeta" class="w-full rounded-md border border-surface-variant p-2 text-sm" placeholder="1234567812345678" maxlength="16">
+					</div>
+				</div>
+
+				<div id="camposTransferencia" class="hidden space-y-3">
+					<div>
+						<label for="cbu" class="block text-sm font-medium text-on-surface mb-1">CBU (22 dígitos)</label>
+						<input type="text" id="cbu" name="cbu" class="w-full rounded-md border border-surface-variant p-2 text-sm" placeholder="0000000000000000000000" maxlength="22">
+					</div>
+				</div>
+
+				<div id="pagoError" class="hidden p-3 bg-red-100 text-red-700 text-sm rounded border border-red-200"></div>
+
+				<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2">
+					<button type="button" class="rounded-lg border border-surface-variant px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container" onclick="cerrarModalPago()">
+						Cancelar
+					</button>
+					<button type="submit" id="btnConfirmarPago" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 flex items-center justify-center">
+						<span id="textoBtnPago">Confirmar Pago</span>
+						<svg id="spinnerPago" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
 </div>
+
+<script>
+	function getCookie(name) {
+		let cookieValue = null;
+		if (document.cookie && document.cookie !== '') {
+			const cookies = document.cookie.split(';');
+			for (let i = 0; i < cookies.length; i++) {
+				const cookie = cookies[i].trim();
+				if (cookie.substring(0, name.length + 1) === (name + '=')) {
+					cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+					break;
+				}
+			}
+		}
+		return cookieValue;
+	}
+	const csrftoken = getCookie('csrftoken');
+
+	function abrirModalPago(reservaId, monto, vehiculoModelo) {
+		document.getElementById('pagoReservaId').value = reservaId;
+		document.getElementById('pagoMonto').innerText = monto;
+		document.getElementById('pagoVehiculoModelo').innerText = vehiculoModelo;
+		document.getElementById('pagoError').classList.add('hidden');
+		document.getElementById('pagoModal').classList.remove('hidden');
+	}
+
+	function cerrarModalPago() {
+		document.getElementById('pagoModal').classList.add('hidden');
+		document.getElementById('formPago').reset();
+		cambiarMetodoPago();
+	}
+
+	function cambiarMetodoPago() {
+		const select = document.getElementById('pagoMetodo');
+		const option = select.options[select.selectedIndex];
+		const nombreMetodo = option ? option.dataset.nombre : '';
+		
+		const camposTarjeta = document.getElementById('camposTarjeta');
+		const camposTransferencia = document.getElementById('camposTransferencia');
+		
+		camposTarjeta.classList.add('hidden');
+		camposTransferencia.classList.add('hidden');
+		
+		if (nombreMetodo && nombreMetodo.toLowerCase().includes('tarjeta')) {
+			camposTarjeta.classList.remove('hidden');
+		} else if (nombreMetodo && nombreMetodo.toLowerCase().includes('transferencia')) {
+			camposTransferencia.classList.remove('hidden');
+		}
+	}
+
+	document.getElementById('formPago').addEventListener('submit', function(e) {
+		e.preventDefault();
+		const reservaId = document.getElementById('pagoReservaId').value;
+		const metodoPagoId = document.getElementById('pagoMetodo').value;
+		
+		if (!metodoPagoId) {
+			mostrarErrorPago('Seleccione un método de pago.');
+			return;
+		}
+
+		// Recopilar datos de pago según el método
+		let datosPago = {};
+		const select = document.getElementById('pagoMetodo');
+		const nombreMetodo = select.options[select.selectedIndex].dataset.nombre.toLowerCase();
+		
+		if (nombreMetodo.includes('tarjeta')) {
+			datosPago.numero_tarjeta = document.getElementById('numeroTarjeta').value;
+			if (!datosPago.numero_tarjeta || datosPago.numero_tarjeta.length !== 16) {
+				mostrarErrorPago('Ingrese un número de tarjeta válido (16 dígitos).');
+				return;
+			}
+		} else if (nombreMetodo.includes('transferencia')) {
+			datosPago.cbu = document.getElementById('cbu').value;
+			if (!datosPago.cbu || datosPago.cbu.length !== 22) {
+				mostrarErrorPago('Ingrese un CBU válido (22 dígitos).');
+				return;
+			}
+		}
+
+		// Estado de carga
+		const btn = document.getElementById('btnConfirmarPago');
+		const textoBtn = document.getElementById('textoBtnPago');
+		const spinner = document.getElementById('spinnerPago');
+		
+		btn.disabled = true;
+		textoBtn.innerText = 'Procesando...';
+		spinner.classList.remove('hidden');
+		document.getElementById('pagoError').classList.add('hidden');
+
+		fetch('/api/v1/pagos/', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRFToken': csrftoken
+			},
+			body: JSON.stringify({
+				reserva: reservaId,
+				metodo_pago: metodoPagoId,
+				datos_pago: datosPago,
+				comprobante_transaccion: 'TRX-' + Math.floor(Math.random() * 1000000)
+			})
+		})
+		.then(response => response.json().then(data => ({status: response.status, body: data})))
+		.then(res => {
+			if (res.status === 201) {
+				// Éxito, recargar para mostrar el cambio de estado
+				window.location.reload();
+			} else {
+				// Error del backend
+				let errorMsg = res.body.mensaje || 'Error al procesar el pago.';
+				if (res.body.errores) {
+					errorMsg += ' ' + JSON.stringify(res.body.errores);
+				}
+				mostrarErrorPago(errorMsg);
+			}
+		})
+		.catch(error => {
+			mostrarErrorPago('Error de red. Inténtelo de nuevo.');
+		})
+		.finally(() => {
+			btn.disabled = false;
+			textoBtn.innerText = 'Confirmar Pago';
+			spinner.classList.add('hidden');
+		});
+	});
+
+	function mostrarErrorPago(mensaje) {
+		const divError = document.getElementById('pagoError');
+		divError.innerText = mensaje;
+		divError.classList.remove('hidden');
+	}
+</script>
+
 {% endblock %}
