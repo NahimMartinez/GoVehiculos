@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pago Exitoso — Reserva Confirmada | GoVehiculos{% endblock %}
+{% block meta_description %}Tu pago fue procesado exitosamente y tu reserva está confirmada.{% endblock %}
+
+{% block css_extra %}
+<style>
+    @keyframes checkmark-draw {
+        0% { stroke-dashoffset: 100; }
+        100% { stroke-dashoffset: 0; }
+    }
+    @keyframes circle-fill {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fade-up {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes confetti-fall {
+        0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    .success-circle {
+        animation: circle-fill 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    .success-check {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: checkmark-draw 0.5s 0.4s ease-out forwards;
+    }
+    .fade-up {
+        opacity: 0;
+        animation: fade-up 0.6s ease-out forwards;
+    }
+    .fade-up-1 { animation-delay: 0.5s; }
+    .fade-up-2 { animation-delay: 0.7s; }
+    .fade-up-3 { animation-delay: 0.9s; }
+
+    .confetti-piece {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        animation: confetti-fall linear forwards;
+        z-index: 60;
+        pointer-events: none;
+    }
+
+    .receipt-card {
+        background: linear-gradient(135deg, #ffffff, #f8faff);
+        border: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    .receipt-divider {
+        border-top: 2px dashed #e2e8f0;
+        position: relative;
+    }
+    .receipt-divider::before,
+    .receipt-divider::after {
+        content: '';
+        position: absolute;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #faf8ff;
+    }
+    .receipt-divider::before { left: -10px; }
+    .receipt-divider::after { right: -10px; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<section class="relative overflow-hidden bg-surface px-4 py-12 md:py-20 min-h-[80vh] flex items-center">
+    <!-- Background decorations -->
+    <div class="absolute inset-0 -z-10">
+        <div class="absolute -top-24 right-0 h-72 w-72 rounded-full bg-tertiary/15 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-primary/10 blur-3xl"></div>
+    </div>
+
+    <div class="mx-auto w-full max-w-lg">
+        <!-- Success animation -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-24 h-24 mb-6">
+                <svg class="w-24 h-24" viewBox="0 0 100 100">
+                    <circle class="success-circle" cx="50" cy="50" r="45" fill="#d1fae5" stroke="#10b981" stroke-width="3"/>
+                    <path class="success-check" d="M30 52 L44 66 L72 38" fill="none" stroke="#059669" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-headline font-extrabold text-on-surface fade-up fade-up-1 md:text-4xl">¡Pago exitoso!</h1>
+            <p class="mt-3 text-on-surface-variant fade-up fade-up-1">Tu reserva ha sido confirmada correctamente.</p>
+        </div>
+
+        <!-- Receipt card -->
+        <div class="receipt-card rounded-3xl p-6 shadow-xl fade-up fade-up-2">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Comprobante de pago</p>
+                {% if pago %}
+                <p class="mt-1 text-sm font-mono text-on-surface-variant">{{ pago.comprobante_transaccion }}</p>
+                {% endif %}
+            </div>
+
+            <div class="receipt-divider my-5"></div>
+
+            <!-- Details -->
+            <div class="space-y-4">
+                {% if reserva.vehiculo %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Vehículo</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ reserva.vehiculo.modelo }}</span>
+                </div>
+                {% endif %}
+
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Período</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ reserva.fecha_inicio|date:"d/m/Y" }} — {{ reserva.fecha_fin|date:"d/m/Y" }}</span>
+                </div>
+
+                {% if pago and pago.metodo_pago %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Método de pago</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ pago.metodo_pago.nombre }}</span>
+                </div>
+                {% endif %}
+
+                {% if pago and pago.franquicia %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Franquicia</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ pago.franquicia.nombre }}</span>
+                </div>
+                {% endif %}
+
+                {% if pago and pago.ultimos_4_digitos %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Tarjeta</span>
+                    <span class="text-sm font-semibold text-on-surface">•••• {{ pago.ultimos_4_digitos }}</span>
+                </div>
+                {% endif %}
+
+                {% if pago and pago.nombre_titular %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Titular</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ pago.nombre_titular }}</span>
+                </div>
+                {% endif %}
+
+                <div class="receipt-divider my-4"></div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Estado</span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                        ✓ Confirmada
+                    </span>
+                </div>
+
+                {% if pago %}
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-on-surface">Total pagado</span>
+                    <span class="text-2xl font-extrabold text-primary">${{ pago.monto }}</span>
+                </div>
+                {% endif %}
+
+                {% if pago %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-on-surface-variant">Fecha de pago</span>
+                    <span class="text-sm font-semibold text-on-surface">{{ pago.fecha_pago|date:"d/m/Y H:i" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center fade-up fade-up-3">
+            <a href="{% url 'mis_reservas' %}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-container shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Ver mis reservas
+            </a>
+            <a href="{% url 'inicio' %}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-6 py-3 text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Confetti animation
+    document.addEventListener('DOMContentLoaded', () => {
+        const colors = ['#2563eb', '#059669', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+        for (let i = 0; i < 40; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + 'vw';
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            piece.style.animationDelay = Math.random() * 1.5 + 's';
+            piece.style.width = (Math.random() * 8 + 4) + 'px';
+            piece.style.height = (Math.random() * 8 + 4) + 'px';
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            document.body.appendChild(piece);
+            setTimeout(() => piece.remove(), 5000);
+        }
+    });
+</script>
+{% endblock %}

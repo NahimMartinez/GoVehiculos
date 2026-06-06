@@ -1,0 +1,715 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout — Pago de Reserva | GoVehiculos{% endblock %}
+{% block meta_description %}Completá el pago de tu reserva de vehículo de forma segura.{% endblock %}
+
+{% block css_extra %}
+<style>
+    /* ===== Checkout Animations ===== */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cardFlip {
+        0% { transform: rotateY(0deg); }
+        50% { transform: rotateY(10deg); }
+        100% { transform: rotateY(0deg); }
+    }
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
+        50% { box-shadow: 0 0 20px 4px rgba(37, 99, 235, 0.15); }
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+
+    .checkout-section { animation: slideIn 0.5s ease-out; }
+    .checkout-section:nth-child(2) { animation-delay: 0.1s; }
+    .checkout-section:nth-child(3) { animation-delay: 0.2s; }
+
+    .card-preview {
+        perspective: 1000px;
+        transition: transform 0.6s ease;
+    }
+    .card-preview:hover { animation: cardFlip 0.8s ease; }
+
+    .method-tab {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .method-tab::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .method-tab:hover::before { opacity: 1; }
+    .method-tab.active {
+        border-color: #2563eb;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(37, 99, 235, 0.02));
+        box-shadow: 0 0 0 1px #2563eb;
+    }
+    .method-tab.active::before { opacity: 1; }
+
+    .franchise-chip {
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+    .franchise-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .franchise-chip.active {
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.08);
+        box-shadow: 0 0 0 1px #2563eb;
+    }
+
+    .input-field {
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .input-field:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .input-field.error {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .pay-btn {
+        transition: all 0.3s ease;
+        animation: pulse-glow 3s infinite;
+    }
+    .pay-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+    }
+    .pay-btn:active {
+        transform: translateY(0);
+    }
+    .pay-btn:disabled {
+        animation: none;
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .skeleton-loading {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+
+    .campos-pago-section {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .price-highlight {
+        background: linear-gradient(135deg, #dbeafe, #ede9fe);
+        border: 1px solid rgba(37, 99, 235, 0.15);
+    }
+
+    .secure-badge {
+        background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<section class="relative overflow-hidden bg-surface px-4 py-8 md:py-16">
+    <!-- Background decorations -->
+    <div class="absolute inset-0 -z-10">
+        <div class="absolute -top-24 right-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-tertiary/10 blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-primary/5 blur-3xl"></div>
+    </div>
+
+    <div class="mx-auto w-full max-w-6xl">
+        <!-- Header -->
+        <div class="mb-8 text-center checkout-section">
+            <div class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Pago seguro
+            </div>
+            <h1 class="text-3xl font-headline font-extrabold text-on-surface md:text-4xl">Checkout de Pago</h1>
+            <p class="mt-2 text-sm text-on-surface-variant">Completá los datos de pago para confirmar tu reserva.</p>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-5">
+            <!-- Left Column: Payment Form (3/5) -->
+            <div class="lg:col-span-3 space-y-6 checkout-section">
+                <!-- Step 1: Payment Method Selection -->
+                <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-lg">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold">1</span>
+                        <h2 class="text-lg font-headline font-bold text-on-surface">Método de pago</h2>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-3" id="metodos-tabs">
+                        {% for metodo in metodos %}
+                        <button type="button"
+                            class="method-tab rounded-2xl border border-outline-variant/30 bg-surface p-4 text-center"
+                            data-metodo-nombre="{{ metodo.nombre }}"
+                            data-metodo-id="{{ metodo.id }}"
+                            onclick="seleccionarMetodo(this)">
+                            <div class="mb-2">
+                                {% if 'crédito' in metodo.nombre or 'credito' in metodo.nombre %}
+                                <svg class="mx-auto w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="1.5"/><path d="M2 10h20" stroke-width="1.5"/><circle cx="7" cy="15" r="1.5" fill="currentColor"/></svg>
+                                {% elif 'débito' in metodo.nombre or 'debito' in metodo.nombre %}
+                                <svg class="mx-auto w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="1.5"/><path d="M2 10h20" stroke-width="1.5"/><path d="M6 15h4" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                {% else %}
+                                <svg class="mx-auto w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm font-semibold text-on-surface">{{ metodo.nombre }}</p>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                {% if 'crédito' in metodo.nombre or 'credito' in metodo.nombre %}
+                                +10% recargo
+                                {% elif 'débito' in metodo.nombre or 'debito' in metodo.nombre %}
+                                Sin recargo
+                                {% else %}
+                                5% descuento
+                                {% endif %}
+                            </p>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Step 2: Payment Details (Dynamic) -->
+                <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-lg campos-pago-section" id="seccion-datos-pago" style="display:none;">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold">2</span>
+                        <h2 class="text-lg font-headline font-bold text-on-surface">Datos de pago</h2>
+                    </div>
+
+                    <!-- Franchise selection (for card methods) -->
+                    <div id="franquicia-section" class="mb-6" style="display:none;">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-outline mb-3">Franquicia de tarjeta</label>
+                        <div class="flex flex-wrap gap-3" id="franquicia-chips">
+                            {% for franquicia in franquicias %}
+                            <button type="button"
+                                class="franchise-chip inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-4 py-2.5"
+                                data-franquicia-id="{{ franquicia.id }}"
+                                data-franquicia-nombre="{{ franquicia.nombre }}"
+                                data-franquicia-tipo="{{ franquicia.tipo }}"
+                                onclick="seleccionarFranquicia(this)">
+                                <span class="text-sm font-semibold text-on-surface">{{ franquicia.nombre }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Card Preview (for card methods) -->
+                    <div id="card-preview-section" class="mb-6" style="display:none;">
+                        <div class="card-preview mx-auto max-w-sm">
+                            <div class="relative rounded-2xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-6 text-white shadow-2xl aspect-[1.6/1]">
+                                <div class="absolute top-4 right-5">
+                                    <span class="text-lg font-bold opacity-80" id="preview-franquicia">VISA</span>
+                                </div>
+                                <div class="absolute top-4 left-5">
+                                    <div class="w-10 h-7 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 opacity-90"></div>
+                                </div>
+                                <div class="absolute bottom-16 left-5 right-5">
+                                    <p class="text-lg tracking-[0.25em] font-mono" id="preview-numero">•••• •••• •••• ••••</p>
+                                </div>
+                                <div class="absolute bottom-5 left-5 right-5 flex justify-between items-end">
+                                    <div>
+                                        <p class="text-[10px] uppercase opacity-60">Titular</p>
+                                        <p class="text-sm font-medium tracking-wide" id="preview-titular">TU NOMBRE</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] uppercase opacity-60">Vence</p>
+                                        <p class="text-sm font-medium" id="preview-vencimiento">MM/AA</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic form fields container -->
+                    <div id="campos-dinamicos" class="space-y-4">
+                        <!-- Fields are injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Step 3: Summary & Confirm -->
+                <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-lg" id="seccion-confirmar" style="display:none;">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold">3</span>
+                        <h2 class="text-lg font-headline font-bold text-on-surface">Confirmar y pagar</h2>
+                    </div>
+
+                    <!-- Price breakdown -->
+                    <div class="price-highlight rounded-2xl p-5 mb-5">
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-on-surface-variant">Monto base ({{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_fin|date:"d/m/Y" }})</span>
+                                <span class="font-medium text-on-surface">${{ reserva.monto_total }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm" id="fila-recargo" style="display:none;">
+                                <span class="text-on-surface-variant" id="label-recargo">Recargo/Descuento</span>
+                                <span class="font-medium" id="valor-recargo">$0.00</span>
+                            </div>
+                            <div class="border-t border-outline-variant/20 pt-3">
+                                <div class="flex justify-between">
+                                    <span class="font-bold text-on-surface">Total a pagar</span>
+                                    <span class="text-2xl font-extrabold text-primary" id="total-final">${{ reserva.monto_total }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security badge -->
+                    <div class="secure-badge rounded-xl p-3 flex items-center gap-3 mb-5">
+                        <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <p class="text-xs text-emerald-800">Tu información de pago es procesada de forma segura. Simulación de procesador certificado.</p>
+                    </div>
+
+                    <!-- Error display -->
+                    <div id="checkout-errores" class="hidden mb-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                        <p class="text-sm font-semibold text-red-800 mb-1">Error en el pago</p>
+                        <ul class="text-sm text-red-700 space-y-1" id="checkout-errores-lista"></ul>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                        <form method="POST" action="{% url 'cancelar_checkout' reserva.id %}" id="form-cancelar-checkout">
+                            {% csrf_token %}
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface px-5 py-3 text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Cancelar pago
+                            </button>
+                        </form>
+
+                        <button type="button" id="btn-pagar" class="pay-btn inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-container px-8 py-3 text-sm font-bold text-white shadow-lg" onclick="procesarPago()" disabled>
+                            <span id="btn-pagar-texto">Finalizar compra</span>
+                            <svg id="btn-pagar-spinner" class="hidden animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Reservation Summary (2/5) -->
+            <div class="lg:col-span-2 checkout-section">
+                <div class="sticky top-24 space-y-5">
+                    <!-- Reservation card -->
+                    <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resumen de reserva</p>
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                                ⏳ Pendiente de pago
+                            </span>
+                        </div>
+
+                        {% if reserva.vehiculo %}
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-xs text-on-surface-variant">Vehículo</p>
+                                <p class="text-lg font-bold text-on-surface">{{ reserva.vehiculo.modelo }}</p>
+                                <p class="text-sm text-on-surface-variant uppercase">{{ reserva.vehiculo.matricula }}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="rounded-xl bg-surface-container-low p-3">
+                                    <p class="text-xs text-on-surface-variant">Desde</p>
+                                    <p class="text-sm font-bold text-on-surface">{{ reserva.fecha_inicio|date:"d/m/Y" }}</p>
+                                </div>
+                                <div class="rounded-xl bg-surface-container-low p-3">
+                                    <p class="text-xs text-on-surface-variant">Hasta</p>
+                                    <p class="text-sm font-bold text-on-surface">{{ reserva.fecha_fin|date:"d/m/Y" }}</p>
+                                </div>
+                            </div>
+                            <div class="rounded-xl bg-surface-container-low p-3">
+                                <p class="text-xs text-on-surface-variant">Días de alquiler</p>
+                                {% widthratio reserva.fecha_fin|date:"U" reserva.fecha_inicio|date:"U" 1 as ratio %}
+                                <p class="text-sm font-bold text-on-surface">{{ reserva.vehiculo.precio_x_dia }} × día</p>
+                            </div>
+                            <div class="rounded-xl bg-primary/5 p-4 text-center">
+                                <p class="text-xs text-on-surface-variant">Monto base</p>
+                                <p class="text-2xl font-extrabold text-primary">${{ reserva.monto_total }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Payment method summary (updates dynamically) -->
+                    <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-5 shadow-lg" id="resumen-metodo-card" style="display:none;">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-outline mb-3">Método seleccionado</p>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="1.5"/><path d="M2 10h20" stroke-width="1.5"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-on-surface" id="resumen-metodo-nombre">—</p>
+                                <p class="text-xs text-on-surface-variant" id="resumen-metodo-detalle">—</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trust indicators -->
+                    <div class="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-5">
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3 text-sm text-on-surface-variant">
+                                <svg class="w-4 h-4 text-tertiary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Pago procesado de forma segura
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-on-surface-variant">
+                                <svg class="w-4 h-4 text-tertiary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Confirmación instantánea
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-on-surface-variant">
+                                <svg class="w-4 h-4 text-tertiary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Comprobante de transacción
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // ===== State =====
+    const CHECKOUT_STATE = {
+        reservaId: {{ reserva.id }},
+        montoBase: {{ reserva.monto_total }},
+        metodoSeleccionado: null,
+        metodoNombre: '',
+        franquiciaId: null,
+        franquiciaNombre: '',
+        franquicias: {{ franquicias_json|safe }},
+        procesando: false,
+    };
+
+    const FACTORES = {
+        'tarjeta de credito': { factor: 1.10, label: 'Recargo tarjeta de crédito (10%)', class: 'text-red-600' },
+        'tarjeta de débito': { factor: 1.00, label: 'Sin recargo', class: 'text-on-surface-variant' },
+        'tarjeta de debito': { factor: 1.00, label: 'Sin recargo', class: 'text-on-surface-variant' },
+        'transferencia': { factor: 0.95, label: 'Descuento transferencia (5%)', class: 'text-tertiary' },
+    };
+
+    function normalizar(texto) {
+        return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+
+    // ===== CSRF =====
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // ===== Step 1: Payment Method =====
+    function seleccionarMetodo(btn) {
+        // Deselect all
+        document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        CHECKOUT_STATE.metodoNombre = btn.dataset.metodoNombre;
+        CHECKOUT_STATE.metodoSeleccionado = btn.dataset.metodoId;
+        CHECKOUT_STATE.franquiciaId = null;
+        CHECKOUT_STATE.franquiciaNombre = '';
+
+        // Show data section
+        document.getElementById('seccion-datos-pago').style.display = '';
+        document.getElementById('seccion-confirmar').style.display = '';
+
+        // Update right column summary
+        const resumenCard = document.getElementById('resumen-metodo-card');
+        resumenCard.style.display = '';
+        document.getElementById('resumen-metodo-nombre').textContent = CHECKOUT_STATE.metodoNombre;
+
+        const norm = normalizar(CHECKOUT_STATE.metodoNombre);
+        const factorInfo = FACTORES[norm] || { factor: 1, label: '', class: '' };
+        document.getElementById('resumen-metodo-detalle').textContent = factorInfo.label;
+
+        renderizarCampos();
+        actualizarPrecio();
+    }
+
+    // ===== Step 2: Dynamic Fields =====
+    function renderizarCampos() {
+        const container = document.getElementById('campos-dinamicos');
+        const franquiciaSection = document.getElementById('franquicia-section');
+        const cardPreview = document.getElementById('card-preview-section');
+        const norm = normalizar(CHECKOUT_STATE.metodoNombre);
+        const esTarjeta = norm.includes('tarjeta');
+        const esCredito = norm.includes('credito');
+
+        // Franchise chips
+        if (esTarjeta) {
+            franquiciaSection.style.display = '';
+            cardPreview.style.display = '';
+            // Filter franchises by type
+            const chips = document.querySelectorAll('.franchise-chip');
+            chips.forEach(chip => {
+                const tipo = chip.dataset.franquiciaTipo;
+                if (tipo === 'ambas' || (esCredito && tipo === 'credito') || (!esCredito && tipo === 'debito')) {
+                    chip.style.display = '';
+                } else {
+                    chip.style.display = 'none';
+                }
+                chip.classList.remove('active');
+            });
+        } else {
+            franquiciaSection.style.display = 'none';
+            cardPreview.style.display = 'none';
+        }
+
+        // Generate form fields
+        let html = '';
+        if (esTarjeta) {
+            html += `
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">Número de tarjeta</label>
+                    <input type="text" id="campo-numero-tarjeta" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none font-mono tracking-widest" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatearNumeroTarjeta(this); actualizarPreviewTarjeta()">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">Nombre del titular</label>
+                    <input type="text" id="campo-nombre-titular" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none" placeholder="Como figura en la tarjeta" maxlength="100" oninput="actualizarPreviewTarjeta()">
+                </div>`;
+
+            if (esCredito) {
+                html += `
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-outline">Mes</label>
+                        <select id="campo-vencimiento-mes" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none" onchange="actualizarPreviewTarjeta()">
+                            <option value="">MM</option>
+                            ${Array.from({length: 12}, (_, i) => `<option value="${String(i+1).padStart(2, '0')}">${String(i+1).padStart(2, '0')}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-outline">Año</label>
+                        <select id="campo-vencimiento-anio" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none" onchange="actualizarPreviewTarjeta()">
+                            <option value="">AA</option>
+                            ${Array.from({length: 10}, (_, i) => `<option value="${2026 + i}">${2026 + i}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-outline">CVV</label>
+                        <input type="text" id="campo-codigo-seguridad" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none text-center tracking-[0.3em]" placeholder="•••" maxlength="3" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    </div>
+                </div>`;
+            } else {
+                // Debit: 4-digit security code, no expiry
+                html += `
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">Código de seguridad</label>
+                    <input type="text" id="campo-codigo-seguridad" class="input-field w-full max-w-[150px] rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none text-center tracking-[0.3em]" placeholder="••••" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                </div>`;
+            }
+        } else {
+            // Transfer
+            html += `
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">CBU / CVU</label>
+                    <input type="text" id="campo-cbu-cvu" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none font-mono tracking-wider" placeholder="0000000000000000000000" maxlength="22" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <p class="text-xs text-on-surface-variant">22 dígitos numéricos</p>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">Titular de la cuenta</label>
+                    <input type="text" id="campo-titular-cuenta" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none" placeholder="Nombre del titular" maxlength="100">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-outline">Alias <span class="normal-case font-normal">(opcional)</span></label>
+                    <input type="text" id="campo-alias" class="input-field w-full rounded-xl border border-outline-variant/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none" placeholder="mi.alias.mp" maxlength="50">
+                </div>`;
+        }
+
+        container.innerHTML = html;
+        actualizarBotonPagar();
+    }
+
+    // ===== Franchise Selection =====
+    function seleccionarFranquicia(chip) {
+        document.querySelectorAll('.franchise-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        CHECKOUT_STATE.franquiciaId = parseInt(chip.dataset.franquiciaId);
+        CHECKOUT_STATE.franquiciaNombre = chip.dataset.franquiciaNombre;
+        document.getElementById('preview-franquicia').textContent = CHECKOUT_STATE.franquiciaNombre.toUpperCase();
+        actualizarBotonPagar();
+    }
+
+    // ===== Card Number Formatting =====
+    function formatearNumeroTarjeta(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length > 16) value = value.substring(0, 16);
+        let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+        input.value = formatted;
+    }
+
+    // ===== Card Preview Update =====
+    function actualizarPreviewTarjeta() {
+        const numero = document.getElementById('campo-numero-tarjeta')?.value || '';
+        const titular = document.getElementById('campo-nombre-titular')?.value || '';
+        const mes = document.getElementById('campo-vencimiento-mes')?.value || '';
+        const anio = document.getElementById('campo-vencimiento-anio')?.value || '';
+
+        const previewNumero = document.getElementById('preview-numero');
+        const previewTitular = document.getElementById('preview-titular');
+        const previewVencimiento = document.getElementById('preview-vencimiento');
+
+        if (previewNumero) {
+            const limpio = numero.replace(/\D/g, '').padEnd(16, '•');
+            previewNumero.textContent = limpio.match(/.{1,4}/g)?.join(' ') || '•••• •••• •••• ••••';
+        }
+        if (previewTitular) {
+            previewTitular.textContent = titular.toUpperCase() || 'TU NOMBRE';
+        }
+        if (previewVencimiento) {
+            if (mes && anio) {
+                previewVencimiento.textContent = `${mes}/${anio.slice(-2)}`;
+            } else {
+                previewVencimiento.textContent = 'MM/AA';
+            }
+        }
+    }
+
+    // ===== Price Calculation =====
+    function actualizarPrecio() {
+        const norm = normalizar(CHECKOUT_STATE.metodoNombre);
+        const info = FACTORES[norm] || { factor: 1, label: '', class: '' };
+        const montoBase = CHECKOUT_STATE.montoBase;
+        const total = montoBase * info.factor;
+        const diferencia = total - montoBase;
+
+        const filaRecargo = document.getElementById('fila-recargo');
+        const labelRecargo = document.getElementById('label-recargo');
+        const valorRecargo = document.getElementById('valor-recargo');
+        const totalFinal = document.getElementById('total-final');
+
+        if (diferencia !== 0) {
+            filaRecargo.style.display = '';
+            labelRecargo.textContent = info.label;
+            const signo = diferencia > 0 ? '+' : '-';
+            valorRecargo.textContent = `${signo}$${Math.abs(diferencia).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            valorRecargo.className = `font-medium ${info.class}`;
+        } else {
+            filaRecargo.style.display = 'none';
+        }
+
+        totalFinal.textContent = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+    // ===== Pay Button State =====
+    function actualizarBotonPagar() {
+        const btn = document.getElementById('btn-pagar');
+        const norm = normalizar(CHECKOUT_STATE.metodoNombre);
+        const esTarjeta = norm.includes('tarjeta');
+
+        if (!CHECKOUT_STATE.metodoNombre) {
+            btn.disabled = true;
+            return;
+        }
+        if (esTarjeta && !CHECKOUT_STATE.franquiciaId) {
+            btn.disabled = true;
+            return;
+        }
+        btn.disabled = false;
+    }
+
+    // ===== Process Payment =====
+    function procesarPago() {
+        if (CHECKOUT_STATE.procesando) return;
+
+        const norm = normalizar(CHECKOUT_STATE.metodoNombre);
+        const esTarjeta = norm.includes('tarjeta');
+        const esCredito = norm.includes('credito');
+
+        // Collect form data
+        const datosPago = {};
+        if (esTarjeta) {
+            datosPago.numero_tarjeta = (document.getElementById('campo-numero-tarjeta')?.value || '').replace(/\s/g, '');
+            datosPago.nombre_titular = document.getElementById('campo-nombre-titular')?.value || '';
+            datosPago.codigo_seguridad = document.getElementById('campo-codigo-seguridad')?.value || '';
+            datosPago.franquicia_id = CHECKOUT_STATE.franquiciaId;
+            if (esCredito) {
+                datosPago.vencimiento_mes = document.getElementById('campo-vencimiento-mes')?.value || '';
+                datosPago.vencimiento_anio = document.getElementById('campo-vencimiento-anio')?.value || '';
+            }
+        } else {
+            datosPago.cbu_cvu = document.getElementById('campo-cbu-cvu')?.value || '';
+            datosPago.titular_cuenta = document.getElementById('campo-titular-cuenta')?.value || '';
+            datosPago.alias = document.getElementById('campo-alias')?.value || '';
+        }
+
+        // UI loading state
+        CHECKOUT_STATE.procesando = true;
+        const btn = document.getElementById('btn-pagar');
+        const btnTexto = document.getElementById('btn-pagar-texto');
+        const btnSpinner = document.getElementById('btn-pagar-spinner');
+        btn.disabled = true;
+        btnTexto.textContent = 'Procesando pago...';
+        btnSpinner.classList.remove('hidden');
+        ocultarErrores();
+
+        fetch(`/reservas/checkout/${CHECKOUT_STATE.reservaId}/pagar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({
+                metodo_pago_nombre: CHECKOUT_STATE.metodoNombre,
+                franquicia_id: CHECKOUT_STATE.franquiciaId,
+                datos_pago: datosPago,
+            }),
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            if (res.status === 201 && res.body.ok) {
+                // Success — redirect to confirmation
+                window.location.href = res.body.redirect_url;
+            } else {
+                // Show errors
+                const errores = res.body.errores || [res.body.mensaje || 'Error desconocido.'];
+                mostrarErrores(Array.isArray(errores) ? errores : [errores]);
+            }
+        })
+        .catch(() => {
+            mostrarErrores(['Error de red. Inténtelo de nuevo.']);
+        })
+        .finally(() => {
+            CHECKOUT_STATE.procesando = false;
+            btn.disabled = false;
+            btnTexto.textContent = 'Finalizar compra';
+            btnSpinner.classList.add('hidden');
+        });
+    }
+
+    function mostrarErrores(errores) {
+        const container = document.getElementById('checkout-errores');
+        const lista = document.getElementById('checkout-errores-lista');
+        lista.innerHTML = errores.map(e => `<li>• ${e}</li>`).join('');
+        container.classList.remove('hidden');
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function ocultarErrores() {
+        document.getElementById('checkout-errores').classList.add('hidden');
+    }
+</script>
+{% endblock %}

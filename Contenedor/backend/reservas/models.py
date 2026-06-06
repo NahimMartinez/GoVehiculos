@@ -17,6 +17,21 @@ class MetodoPago(models.Model):
         return self.nombre
 
 
+class FranquiciaTarjeta(models.Model):
+    """Franquicias de tarjetas disponibles (Visa, MasterCard, American Express, etc.)."""
+    TIPO_CHOICES = [
+        ('credito', 'Crédito'),
+        ('debito', 'Débito'),
+        ('ambas', 'Ambas'),
+    ]
+
+    nombre = models.CharField(max_length=30, unique=True)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ambas')
+
+    def __str__(self):
+        return self.nombre
+
+
 # QuerySet es una implementación personalizada para el modelo Reserva, con métodos específicos para filtrar reservas en estados bloqueantes y con solapamiento de fechas.
 class ReservaQuerySet(models.QuerySet):
     # Filtro para obtener reservas que están en estados bloqueantes, es decir, aquellas que tienen un estado de reserva con nombre "Pendiente" o "Confirmada". Esto es útil para identificar reservas que podrían afectar la disponibilidad de un vehículo, ya que estas reservas aún no han sido canceladas o completadas.
@@ -59,11 +74,15 @@ class Reserva(models.Model):
 class Pago(models.Model):
     fecha_pago = models.DateTimeField(auto_now_add=True)
     comprobante_transaccion = models.CharField(max_length=100)
+    monto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    nombre_titular = models.CharField(max_length=100, null=True, blank=True)
+    ultimos_4_digitos = models.CharField(max_length=4, null=True, blank=True)
+    metodo_detalle = models.CharField(max_length=150, null=True, blank=True)
 
     #Relaciones
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.SET_NULL, null=True)
     reserva = models.OneToOneField(Reserva, on_delete=models.SET_NULL, null=True)
+    franquicia = models.ForeignKey(FranquiciaTarjeta, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f'Pago #{self.id}'
-

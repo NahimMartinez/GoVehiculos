@@ -69,12 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
+	// Resumen dinámico del formulario de reserva (sin método de pago — eso se elige en el checkout)
 	const reservaForm = document.querySelector('[data-reserva-form]');
 	if (reservaForm) {
-		const metodoSelect = reservaForm.querySelector('[data-metodo-select]');
 		const vehicleSelect = reservaForm.querySelector('[data-vehicle-select]');
 		const selectedVehicleCard = reservaForm.querySelector('[data-selected-vehicle-card]');
-		const resumenMetodo = reservaForm.querySelector('[data-resumen-metodo]');
 		const resumenDias = reservaForm.querySelector('[data-resumen-dias]');
 		const resumenTotal = reservaForm.querySelector('[data-resumen-total]');
 		const resumenAyuda = reservaForm.querySelector('[data-resumen-ayuda]');
@@ -85,14 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		const parseNumber = (value) => {
 			const parsed = Number.parseFloat(value);
 			return Number.isFinite(parsed) ? parsed : 0;
-		};
-
-		const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
-		const paymentStrategies = {
-			'tarjeta_credito': { factor: 1.1, help: 'Tarjeta de crédito aplica un recargo del 10%.' },
-			'tarjeta_debito': { factor: 1.0, help: 'Tarjeta de débito mantiene el precio base.' },
-			'transferencia': { factor: 0.95, help: 'Transferencia aplica un descuento del 5%.' },
 		};
 
 		const getSelectedVehicleInfo = () => {
@@ -135,22 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		};
 
 		const updateSummary = () => {
-			if (!resumenMetodo || !resumenDias || !resumenTotal || !resumenAyuda) {
+			if (!resumenDias || !resumenTotal || !resumenAyuda) {
 				return;
 			}
 
 			const { name: vehicleName, price: pricePerDay } = getSelectedVehicleInfo();
-			const selectedMethod = metodoSelect && metodoSelect.value ? metodoSelect.options[metodoSelect.selectedIndex] : null;
-			const methodName = selectedMethod && selectedMethod.value ? selectedMethod.textContent.trim() : 'Seleccionar';
-			const normalizedMethod = selectedMethod && selectedMethod.value
-				? selectedMethod.getAttribute('data-metodo-clave') || normalizeText(selectedMethod.value)
-				: '';
-			const strategy = paymentStrategies[normalizedMethod] || { factor: 1, help: 'Elegí un método de pago para ver el cálculo.' };
 			const days = calculateDays();
-			const baseTotal = days > 0 && pricePerDay > 0 ? days * pricePerDay : 0;
-			const total = baseTotal > 0 ? baseTotal * strategy.factor : 0;
+			const total = days > 0 && pricePerDay > 0 ? days * pricePerDay : 0;
 
-			resumenMetodo.textContent = methodName;
 			resumenDias.textContent = String(days);
 			resumenTotal.textContent = new Intl.NumberFormat('es-AR', {
 				style: 'currency',
@@ -158,20 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
 				maximumFractionDigits: 2,
 			}).format(total);
 
-			if (methodName !== 'Seleccionar' && vehicleName && days > 0) {
-				resumenAyuda.textContent = strategy.help;
+			if (vehicleName && days > 0) {
+				resumenAyuda.textContent = 'El recargo o descuento se aplicará según el método de pago que elijas en el checkout.';
 				return;
 			}
 
-			if (methodName === 'Seleccionar') {
-				resumenAyuda.textContent = 'Elegí un método de pago para completar la reserva.';
-				return;
-			}
-
-			resumenAyuda.textContent = 'Elegí un vehículo, las fechas y un método de pago para ver el cálculo.';
+			resumenAyuda.textContent = 'Elegí un vehículo y las fechas para ver el cálculo. El método de pago se selecciona en el siguiente paso.';
 		};
 
-		[metodoSelect, vehicleSelect, ...fechaReservaInputs].forEach((element) => {
+		[vehicleSelect, ...fechaReservaInputs].forEach((element) => {
 			if (element) {
 				element.addEventListener('change', updateSummary);
 				element.addEventListener('input', updateSummary);

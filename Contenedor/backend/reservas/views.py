@@ -11,10 +11,11 @@ from rest_framework.response import Response
 from django.db.models import Q
 from datetime import datetime, time, timedelta
 
-from .forms import ReservarVehiculoForm
-from .models import EstadoReserva, MetodoPago, Pago, Reserva
+from .forms import CheckoutPagoForm, ReservarVehiculoForm
+from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 from .serializer import (
     EstadoReservaSerializer,
+    FranquiciaTarjetaSerializer,
     MetodoPagoSerializer,
     PagoSerializer,
     ReservaCreateSerializer,
@@ -41,7 +42,6 @@ def obtener_reservas_usuario_view(request):
     contexto = {
         'activos': activos,
         'historial': historial,
-        'metodos': obtener_metodos_de_pago(),
     }
 
     return render(request, 'reservas/mis_reservas.html', contexto)
@@ -52,7 +52,6 @@ def obtener_metodos_de_pago():
 # Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
 def reservar_view(request):
     usuario = request.user
-    metodos = obtener_metodos_de_pago()
     puede_reservar = request.user.is_authenticated and _usuario_valido(request.user)
     mensaje_reserva = None
 
@@ -73,7 +72,6 @@ def reservar_view(request):
 
     contexto = {
         'usuario': usuario,
-        'metodos': metodos,
         'vehiculos_disponibles': vehiculos_disponibles,
         'vehiculo_seleccionado': vehiculo_seleccionado,
         'puede_reservar': puede_reservar,
@@ -132,20 +130,9 @@ def cancelar_reserva_view(request, reserva_id):
             messages.error(request, 'Error del sistema: El estado "Cancelada" no existe.')
             return redirect('mis_reservas')
 
-        # Lógica de las 24 horas
-        # Como fecha_inicio es un DateField, lo convertimos a DateTime (asumiendo que el día empieza a las 00:00)
-        fecha_inicio_dt = timezone.make_aware(datetime.combine(reserva.fecha_inicio, time.min))
-        ahora = timezone.now()
-        
-        tiempo_restante = fecha_inicio_dt - ahora
-        
-        # Validamos y ejecutamos
-        if tiempo_restante >= timedelta(hours=24):
-            reserva.estado_reserva = estado_cancelada
-            reserva.save()
-            messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
-        else:
-            messages.error(request, 'Solo podés cancelar una reserva con al menos 24 horas de anticipación.')
+        reserva.estado_reserva = estado_cancelada
+        reserva.save()
+        messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
             
     return redirect('mis_reservas')
 
@@ -170,7 +157,7 @@ def _reserva_a_dict(reserva):
     }
 
 
-def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin, metodo_pago_estrategia):
+def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
     if vehiculo.duenio_id == usuario.id:
         return None, 'No puedes reservar un vehiculo propio.'
 
@@ -200,13 +187,11 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin, me
         estado_pendiente = _obtener_estado('Pendiente')
         cantidad_dias = (fecha_fin - fecha_inicio).days
 
-        # Calculamos el monto total de la reserva multiplicando la cantidad de días por el precio por día del vehículo. Esto nos da el costo total que el cliente deberá pagar por la reserva, lo que es esencial para el proceso de pago y para mostrar al cliente el costo de su reserva antes de confirmarla.
+        # Calculamos el monto base de la reserva (días × precio por día). El recargo/descuento por método de pago se aplica en el checkout.
         monto_base = cantidad_dias * vehiculo_bloqueado.precio_x_dia
-        contexto_pago = ContextoPago(metodo_pago_estrategia)
-        monto_total = contexto_pago.ejecutar_estrategia(monto_base).quantize(Decimal('0.01'))
 
         reserva = Reserva.objects.create(
-            monto_total=monto_total,
+            monto_total=Decimal(str(monto_base)).quantize(Decimal('0.01')),
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             estado_reserva=estado_pendiente,
@@ -245,7 +230,6 @@ def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formula
 
     return {
         'usuario': request.user,
-        'metodos': obtener_metodos_de_pago(),
         'vehiculos_disponibles': vehiculos_disponibles,
         'vehiculo_seleccionado': vehiculo_seleccionado,
         'puede_reservar': request.user.is_authenticated and _usuario_valido(request.user),
@@ -332,14 +316,11 @@ def crear_reserva_view(request):
     vehiculo = form.cleaned_data['vehiculo']
     fecha_inicio = form.cleaned_data['fecha_inicio']
     fecha_fin = form.cleaned_data['fecha_fin']
-    metodo_pago_nombre = form.cleaned_data['metodo_pago_nombre']
-    metodo_pago_estrategia = form.cleaned_data['metodo_pago_estrategia']
     reserva, mensaje_error = _crear_reserva_en_transaccion(
         usuario=request.user,
         vehiculo=vehiculo,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
-        metodo_pago_estrategia=metodo_pago_estrategia,
     )
 
     if mensaje_error:
@@ -356,15 +337,203 @@ def crear_reserva_view(request):
         return _respuesta_reserva(
             request,
             ok=True,
-            mensaje='Reserva creada correctamente.',
+            mensaje='Reserva creada correctamente. Proceda al checkout.',
             status_code=201,
             reserva=_reserva_a_dict(reserva),
             vehiculo_seleccionado=vehiculo,
         )
 
-    messages.success(request, 'Reserva creada correctamente.')
-    return redirect('inicio')
+    # Redirige automáticamente al checkout para completar el pago
+    return redirect('checkout', reserva_id=reserva.id)
 
+
+# =====================================================================
+# VISTAS DE CHECKOUT
+# =====================================================================
+
+def checkout_view(request, reserva_id):
+    """GET: Renderiza la página de checkout con la info de la reserva y los métodos de pago."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
+        id=reserva_id,
+        cliente=request.user,
+    )
+
+    # Solo se puede hacer checkout de reservas pendientes
+    if not reserva.estado_reserva or reserva.estado_reserva.nombre.strip().lower() != 'pendiente':
+        messages.error(request, 'Esta reserva no está pendiente de pago.')
+        return redirect('mis_reservas')
+
+    metodos = obtener_metodos_de_pago()
+    franquicias = FranquiciaTarjeta.objects.all().order_by('nombre')
+
+    # Preparar franquicias como JSON para el JS dinámico
+    franquicias_data = []
+    for f in franquicias:
+        franquicias_data.append({
+            'id': f.id,
+            'nombre': f.nombre,
+            'tipo': f.tipo,
+        })
+
+    import json as json_lib
+    contexto = {
+        'reserva': reserva,
+        'metodos': metodos,
+        'franquicias': franquicias,
+        'franquicias_json': json_lib.dumps(franquicias_data),
+        'usuario': request.user,
+    }
+
+    return render(request, 'reservas/checkout.html', contexto)
+
+
+@require_POST
+def procesar_checkout_view(request, reserva_id):
+    """POST: Procesa el pago del checkout usando el patrón Strategy."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'mensaje': 'Debes iniciar sesión.'}, status=401)
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'cliente'),
+        id=reserva_id,
+        cliente=request.user,
+    )
+
+    # Solo se puede pagar reservas pendientes
+    if not reserva.estado_reserva or reserva.estado_reserva.nombre.strip().lower() != 'pendiente':
+        return JsonResponse({'ok': False, 'mensaje': 'Esta reserva no está pendiente de pago.'}, status=400)
+
+    # Parsear el body como JSON
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'ok': False, 'mensaje': 'Datos de solicitud inválidos.'}, status=400)
+
+    metodo_pago_nombre = body.get('metodo_pago_nombre', '')
+    datos_pago = body.get('datos_pago', {})
+    franquicia_id = body.get('franquicia_id') or datos_pago.get('franquicia_id')
+
+    # Validar el método de pago
+    try:
+        estrategia = obtener_estrategia_pago(metodo_pago_nombre)
+    except ValueError as e:
+        return JsonResponse({'ok': False, 'mensaje': str(e)}, status=400)
+
+    # Inyectar franquicia_id en datos_pago para la validación de la estrategia
+    if franquicia_id:
+        datos_pago['franquicia_id'] = franquicia_id
+
+    # Validar datos de pago con la estrategia
+    resultado_validacion = estrategia.validar_datos(datos_pago)
+    if not resultado_validacion['valido']:
+        return JsonResponse({
+            'ok': False,
+            'mensaje': 'Revisá los datos de pago.',
+            'errores': resultado_validacion['errores'],
+        }, status=400)
+
+    # Calcular el monto final con recargo/descuento
+    contexto_pago = ContextoPago(estrategia)
+    monto_final = contexto_pago.ejecutar_estrategia(reserva.monto_total).quantize(Decimal('0.01'))
+
+    # Procesar el pago (simulación)
+    resultado_pago = contexto_pago.procesar_pago(datos_pago)
+
+    if not resultado_pago['exito']:
+        return JsonResponse({
+            'ok': False,
+            'mensaje': resultado_pago['mensaje'],
+        }, status=400)
+
+    # Obtener el MetodoPago del catálogo
+    metodo_pago_obj = MetodoPago.objects.filter(nombre__iexact=metodo_pago_nombre).first()
+    if not metodo_pago_obj:
+        # Crearlo si no existe (por robustez)
+        metodo_pago_obj = MetodoPago.objects.create(nombre=metodo_pago_nombre)
+
+    # Obtener franquicia si aplica
+    franquicia_obj = None
+    detalle = resultado_pago.get('detalle', {})
+    if franquicia_id:
+        franquicia_obj = FranquiciaTarjeta.objects.filter(id=franquicia_id).first()
+
+    # Crear pago y confirmar reserva atómicamente
+    with transaction.atomic():
+        pago = Pago.objects.create(
+            reserva=reserva,
+            metodo_pago=metodo_pago_obj,
+            comprobante_transaccion=resultado_pago['comprobante'],
+            monto=monto_final,
+            franquicia=franquicia_obj,
+            nombre_titular=detalle.get('nombre_titular', datos_pago.get('titular_cuenta', '')),
+            ultimos_4_digitos=detalle.get('ultimos_4_digitos', ''),
+            metodo_detalle=detalle.get('cbu_cvu_parcial', ''),
+        )
+
+        # Actualizar monto_total de la reserva con el recargo/descuento aplicado
+        reserva.monto_total = monto_final
+        reserva.estado_reserva = _obtener_estado('Confirmada')
+        reserva.save(update_fields=['estado_reserva', 'monto_total'])
+
+    return JsonResponse({
+        'ok': True,
+        'mensaje': resultado_pago['mensaje'],
+        'pago': {
+            'id': pago.id,
+            'comprobante': pago.comprobante_transaccion,
+            'monto': str(pago.monto),
+        },
+        'redirect_url': f'/reservas/checkout/{reserva.id}/exitoso/',
+    }, status=201)
+
+
+@require_POST
+def cancelar_checkout_view(request, reserva_id):
+    """POST: El usuario cancela el pago en el checkout. La reserva pasa a Cancelada."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
+
+    if reserva.estado_reserva and reserva.estado_reserva.nombre.strip().lower() == 'pendiente':
+        reserva.estado_reserva = _obtener_estado('Cancelada')
+        reserva.save(update_fields=['estado_reserva'])
+        messages.info(request, 'Has cancelado el pago. La reserva fue liberada.')
+    else:
+        messages.error(request, 'Esta reserva no se puede cancelar desde el checkout.')
+
+    return redirect('mis_reservas')
+
+
+def checkout_exitoso_view(request, reserva_id):
+    """GET: Página de confirmación post-pago exitoso."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
+        id=reserva_id,
+        cliente=request.user,
+    )
+
+    pago = Pago.objects.select_related('metodo_pago', 'franquicia').filter(reserva=reserva).first()
+
+    contexto = {
+        'reserva': reserva,
+        'pago': pago,
+        'usuario': request.user,
+    }
+
+    return render(request, 'reservas/checkout_exitoso.html', contexto)
+
+
+# =====================================================================
+# VIEWSETS DE LA API REST
+# =====================================================================
 
 class ReservaViewSet(
     mixins.CreateModelMixin,
@@ -411,7 +580,6 @@ class ReservaViewSet(
             vehiculo=form.cleaned_data['vehiculo'],
             fecha_inicio=form.cleaned_data['fecha_inicio'],
             fecha_fin=form.cleaned_data['fecha_fin'],
-            metodo_pago_estrategia=form.cleaned_data['metodo_pago_estrategia'],
         )
         if mensaje_error:
             return Response(
@@ -421,7 +589,7 @@ class ReservaViewSet(
 
         serializer = ReservaSerializer(reserva, context=self.get_serializer_context())
         return Response(
-            {'ok': True, 'mensaje': 'Reserva creada correctamente.', 'reserva': serializer.data},
+            {'ok': True, 'mensaje': 'Reserva creada correctamente. Proceda al checkout.', 'reserva': serializer.data},
             status=status.HTTP_201_CREATED,
         )
 
@@ -470,6 +638,12 @@ class MetodoPagoViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
+class FranquiciaTarjetaViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = FranquiciaTarjeta.objects.all().order_by('nombre')
+    serializer_class = FranquiciaTarjetaSerializer
+    permission_classes = [IsAuthenticated]
+
+
 class PagoViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -480,29 +654,28 @@ class PagoViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Pago.objects.select_related('metodo_pago', 'reserva', 'reserva__cliente').filter(
+        return Pago.objects.select_related('metodo_pago', 'franquicia', 'reserva', 'reserva__cliente').filter(
             reserva__cliente=self.request.user
         ).order_by('-fecha_pago')
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                {'ok': False, 'errores': serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        """API endpoint para procesar pagos. Usa el patrón Strategy para validar y procesar."""
+        reserva_id = request.data.get('reserva')
+        metodo_pago_id = request.data.get('metodo_pago')
+        datos_pago = request.data.get('datos_pago', {})
 
-        reserva = serializer.validated_data.get('reserva')
-        metodo_pago = serializer.validated_data.get('metodo_pago')
-        if reserva is None:
+        if not reserva_id:
             return Response(
                 {'ok': False, 'mensaje': 'Debes indicar una reserva para registrar el pago.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if metodo_pago is None:
+
+        try:
+            reserva = Reserva.objects.select_related('estado_reserva').get(id=reserva_id, cliente=request.user)
+        except Reserva.DoesNotExist:
             return Response(
-                {'ok': False, 'mensaje': 'Debes indicar un metodo de pago valido.'},
-                status=status.HTTP_400_BAD_REQUEST,
+                {'ok': False, 'mensaje': 'Reserva no encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         if _reserva_esta_cancelada(reserva):
@@ -511,33 +684,22 @@ class PagoViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if reserva.cliente_id != request.user.id:
-            return Response(
-                {'ok': False, 'mensaje': 'No puedes registrar pagos para reservas de otro usuario.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         if Pago.objects.filter(reserva=reserva).exists():
             return Response(
                 {'ok': False, 'mensaje': 'La reserva ya tiene un pago registrado.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Regla de las 24 horas
-        fecha_inicio_dt = timezone.make_aware(datetime.combine(reserva.fecha_inicio, time.min))
-        ahora = timezone.now()
-        tiempo_restante = fecha_inicio_dt - ahora
-
-        if tiempo_restante < timedelta(hours=24):
-            estado_cancelada = _obtener_estado('Cancelada')
-            reserva.estado_reserva = estado_cancelada
-            reserva.save(update_fields=['estado_reserva'])
+        # Obtener método de pago
+        try:
+            metodo_pago = MetodoPago.objects.get(id=metodo_pago_id)
+        except (MetodoPago.DoesNotExist, ValueError, TypeError):
             return Response(
-                {'ok': False, 'mensaje': 'El tiempo para pagar expiró. Debías pagar con al menos 24 horas de anticipación. La reserva ha sido cancelada.'},
+                {'ok': False, 'mensaje': 'Debes indicar un metodo de pago valido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Si estamos a tiempo, aplicamos la estrategia para simular/procesar el pago
+        # Obtener y usar la estrategia
         try:
             estrategia = obtener_estrategia_pago(metodo_pago.nombre)
         except ValueError as e:
@@ -546,23 +708,51 @@ class PagoViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        contexto_pago = ContextoPago(estrategia)
-        datos_pago = request.data.get('datos_pago', {})
-        resultado_pago = contexto_pago.procesar_pago(datos_pago)
+        # Validar datos de pago
+        resultado_validacion = estrategia.validar_datos(datos_pago)
+        if not resultado_validacion['valido']:
+            return Response(
+                {'ok': False, 'mensaje': 'Datos de pago inválidos.', 'errores': resultado_validacion['errores']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if not resultado_pago.get('exito'):
+        # Calcular monto final
+        contexto_pago = ContextoPago(estrategia)
+        monto_final = contexto_pago.ejecutar_estrategia(reserva.monto_total).quantize(Decimal('0.01'))
+
+        # Procesar pago
+        resultado_pago = contexto_pago.procesar_pago(datos_pago)
+        if not resultado_pago['exito']:
             return Response(
                 {'ok': False, 'mensaje': resultado_pago.get('mensaje')},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Obtener franquicia si aplica
+        franquicia_obj = None
+        franquicia_id = datos_pago.get('franquicia_id')
+        if franquicia_id:
+            franquicia_obj = FranquiciaTarjeta.objects.filter(id=franquicia_id).first()
+
+        detalle = resultado_pago.get('detalle', {})
+
         with transaction.atomic():
-            pago = serializer.save()
+            pago = Pago.objects.create(
+                reserva=reserva,
+                metodo_pago=metodo_pago,
+                comprobante_transaccion=resultado_pago['comprobante'],
+                monto=monto_final,
+                franquicia=franquicia_obj,
+                nombre_titular=detalle.get('nombre_titular', datos_pago.get('titular_cuenta', '')),
+                ultimos_4_digitos=detalle.get('ultimos_4_digitos', ''),
+                metodo_detalle=detalle.get('cbu_cvu_parcial', ''),
+            )
 
             estado_actual = reserva.estado_reserva.nombre.strip().lower() if reserva.estado_reserva else ''
             if estado_actual == 'pendiente':
+                reserva.monto_total = monto_final
                 reserva.estado_reserva = _obtener_estado('Confirmada')
-                reserva.save(update_fields=['estado_reserva'])
+                reserva.save(update_fields=['estado_reserva', 'monto_total'])
 
         mensaje_exito = f"{resultado_pago.get('mensaje', '')} Pago registrado correctamente."
         return Response(

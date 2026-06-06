@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import EstadoReserva, MetodoPago, Pago, Reserva
+from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 
 
 class EstadoReservaSerializer(serializers.ModelSerializer):
@@ -14,12 +14,18 @@ class MetodoPagoSerializer(serializers.ModelSerializer):
         model = MetodoPago
         fields = ('id', 'nombre')
 
-# Serializer de entrada para creación de reserva por cliente. Solo acepta los datos mínimos de la solicitud (vehiculo_id, fecha_inicio, fecha_fin) y deja la lógica de negocio/sincronización transaccional en la vista.
+
+class FranquiciaTarjetaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FranquiciaTarjeta
+        fields = ('id', 'nombre', 'tipo')
+
+
+# Serializer de entrada para creación de reserva por cliente. Ya no incluye metodo_pago_nombre porque el pago se realiza en el checkout.
 class ReservaCreateSerializer(serializers.Serializer):
     vehiculo_id = serializers.IntegerField(min_value=1)
     fecha_inicio = serializers.DateField()
     fecha_fin = serializers.DateField()
-    metodo_pago_nombre = serializers.CharField(max_length=30)
 
 
 class ReservaSerializer(serializers.ModelSerializer):
@@ -45,8 +51,22 @@ class ReservaSerializer(serializers.ModelSerializer):
 
 class PagoSerializer(serializers.ModelSerializer):
     metodo_pago_nombre = serializers.CharField(source='metodo_pago.nombre', read_only=True)
+    franquicia_nombre = serializers.CharField(source='franquicia.nombre', read_only=True, default=None)
 
     class Meta:
         model = Pago
-        fields = ('id', 'fecha_pago', 'comprobante_transaccion', 'metodo_pago', 'metodo_pago_nombre', 'reserva')
+        fields = (
+            'id',
+            'fecha_pago',
+            'comprobante_transaccion',
+            'monto',
+            'nombre_titular',
+            'ultimos_4_digitos',
+            'metodo_detalle',
+            'metodo_pago',
+            'metodo_pago_nombre',
+            'franquicia',
+            'franquicia_nombre',
+            'reserva',
+        )
         read_only_fields = ('fecha_pago',)
