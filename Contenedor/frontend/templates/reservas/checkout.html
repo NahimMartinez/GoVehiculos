@@ -384,7 +384,7 @@
     // ===== State =====
     const CHECKOUT_STATE = {
         reservaId: {{ reserva.id }},
-        montoBase: {{ reserva.monto_total }},
+        montoBase: parseFloat("{{ reserva.monto_total }}".replace(',', '.')),
         metodoSeleccionado: null,
         metodoNombre: '',
         franquiciaId: null,
