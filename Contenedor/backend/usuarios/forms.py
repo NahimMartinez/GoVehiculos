@@ -37,14 +37,37 @@ class UsuarioValidationsMixin:
         return last_name
 
     def clean_dni(self):
-        """Valida que el DNI tenga exactamente ocho números."""
+        """Valida que el DNI tenga exactamente ocho números y sea único."""
         # Normalizar el valor eliminado espacios externos
         dni = self.cleaned_data.get("dni", "").strip()
         # Verificar que el documento tenga el formato esperado
         if not re.fullmatch(self.dni_pattern, dni):
             raise ValidationError("El DNI debe contener exactamente 8 números, sin puntos ni espacios.")
+            
+        # Verificar que sea único, excluyendo la instancia actual si se está editando
+        query = Usuario.objects.filter(dni=dni)
+        if hasattr(self, 'instance') and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+            
+        if query.exists():
+            raise ValidationError("Ya existe un usuario registrado con este DNI.")
+            
         # Devolver el valor limpio para que siga el flujo normal del formulario
         return dni
+
+    def clean_email(self):
+        """Valida que el email sea único."""
+        email = self.cleaned_data.get("email", "").strip()
+        
+        # Verificar que sea único, excluyendo la instancia actual si se está editando
+        query = Usuario.objects.filter(email=email)
+        if hasattr(self, 'instance') and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+            
+        if query.exists():
+            raise ValidationError("Ya existe un usuario registrado con este email.")
+            
+        return email
 
 class RegistroUsuarioForm(UsuarioValidationsMixin, UserCreationForm):
     """Formulario para registro de nuevos usuarios.
