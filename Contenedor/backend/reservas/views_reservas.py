@@ -14,7 +14,7 @@ from usuarios.signals import ROLE_CLIENTE, ROLE_SOCIO
 from vehiculos.models import Vehiculo
 
 from .forms import ReservarVehiculoForm
-from .models import EstadoReserva, Reserva
+from .models import EstadoReserva, Pago, Reserva
 
 # =====================================================================
 # CONSTANTES
@@ -195,6 +195,26 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
 # =====================================================================
 # VIEWS
 # =====================================================================
+
+def detalle_reserva_view(request, reserva_id):
+    """GET: Muestra todos los detalles de una reserva."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
+        id=reserva_id, cliente=request.user,
+    )
+
+    pago = Pago.objects.select_related('metodo_pago', 'franquicia', 'reembolso').filter(reserva=reserva).first()
+
+    contexto = {
+        'reserva': reserva,
+        'pago': pago,
+        'usuario': request.user,
+    }
+
+    return render(request, 'reservas/detalle_reserva.html', contexto)
 
 def obtener_reservas_usuario_view(request):
     """

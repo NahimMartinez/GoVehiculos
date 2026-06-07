@@ -14,7 +14,7 @@ from vehiculos.models import EstadoVehiculo, Marca, Modelo, TipoVehiculo, Vehicu
 from .forms import ReservarVehiculoForm
 from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 from .estrategias import obtener_estrategia_pago
-from .views_resevas import _crear_reserva_en_transaccion
+from .views_reservas import _crear_reserva_en_transaccion
 
 
 # =====================================================================

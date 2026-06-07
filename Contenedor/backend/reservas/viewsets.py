@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .forms import ReservarVehiculoForm
-from .views_resevas import HORAS_ANTELACION_CANCELACION, _crear_reserva_en_transaccion, _obtener_estado, _reserva_tiene_estado, _usuario_valido
+from .views_reservas import HORAS_ANTELACION_CANCELACION, _crear_reserva_en_transaccion, _obtener_estado, _reserva_tiene_estado, _usuario_valido
 from .views_pago import _crear_reembolso_reserva, _procesar_pago_reserva
 from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 from .serializer import (
