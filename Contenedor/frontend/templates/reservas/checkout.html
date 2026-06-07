@@ -140,7 +140,17 @@
                 Pago seguro
             </div>
             <h1 class="text-3xl font-headline font-extrabold text-on-surface md:text-4xl">Checkout de Pago</h1>
-            <p class="mt-2 text-sm text-on-surface-variant">Completá los datos de pago para confirmar tu reserva.</p>
+            <p class="mt-2 text-sm text-on-surface-variant">Completa los datos de pago para confirmar tu reserva.</p>
+        </div>
+
+        <!-- Countdown Timer Banner -->
+        <div id="checkout-timer-banner" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between checkout-section" style="display:none;">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                <p class="text-sm font-semibold text-amber-800">
+                    Tienes <span id="checkout-timer" class="font-mono text-base font-bold">--:--</span> para completar el pago o la reserva sera cancelada automaticamente.
+                </p>
+            </div>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-5">
@@ -308,8 +318,9 @@
                     <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-lg">
                         <div class="flex items-center justify-between mb-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resumen de reserva</p>
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                                ⏳ Pendiente de pago
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                                Pendiente de pago
                             </span>
                         </div>
 
@@ -391,7 +402,49 @@
         franquiciaNombre: '',
         franquicias: {{ franquicias_json|safe }},
         procesando: false,
+        segundosRestantes: {{ segundos_restantes }},
     };
+
+    // Countdown Timer
+    function iniciarCountdown() {
+        const timerEl = document.getElementById('checkout-timer');
+        const bannerEl = document.getElementById('checkout-timer-banner');
+        if (!timerEl || CHECKOUT_STATE.segundosRestantes <= 0) return;
+
+        bannerEl.style.display = '';
+        let restante = CHECKOUT_STATE.segundosRestantes;
+
+        function actualizar() {
+            const minutos = Math.floor(restante / 60);
+            const segundos = restante % 60;
+            timerEl.textContent = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+
+            if (restante <= 300) {
+                bannerEl.classList.remove('bg-amber-50', 'border-amber-200', 'text-amber-800');
+                bannerEl.classList.add('bg-red-50', 'border-red-200', 'text-red-800');
+            }
+
+            if (restante <= 0) {
+                clearInterval(intervalo);
+                window.location.href = '/reservas/mis-reservas/';
+                return;
+            }
+            restante--;
+        }
+
+        actualizar();
+        const intervalo = setInterval(actualizar, 1000);
+    }
+
+    // Advertencia al intentar cerrar la ventana
+    window.addEventListener('beforeunload', function(e) {
+        if (!CHECKOUT_STATE.procesando) {
+            e.preventDefault();
+            e.returnValue = 'Si abandonas esta pagina, tu reserva podria ser cancelada.';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', iniciarCountdown);
 
     const FACTORES = {
         'tarjeta de credito': { factor: 1.10, label: 'Recargo tarjeta de crédito (10%)', class: 'text-red-600' },

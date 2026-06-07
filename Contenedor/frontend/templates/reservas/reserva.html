@@ -79,6 +79,8 @@
                 <fieldset class="space-y-6 rounded-3xl border border-outline-variant/20 bg-surface-container-low p-6">
                     <legend class="px-2 text-sm font-bold uppercase tracking-wide text-outline">Fechas de reserva</legend>
 
+                    <p class="text-xs text-on-surface-variant">La fecha de inicio debe ser al menos 2 dias a partir de hoy. Duracion minima: 1 dia.</p>
+
                     <div class="grid gap-6 md:grid-cols-2">
                         <div class="space-y-2">
                             <label for="fecha_inicio" class="text-xs font-bold uppercase text-outline">Fecha de inicio</label>
@@ -90,6 +92,40 @@
                         </div>
                     </div>
                 </fieldset>
+
+                <script>
+                    // Establece los valores 'min' de los date inputs para reflejar la política de 48h de antelación
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const hoy = new Date();
+                        const minInicio = new Date(hoy);
+                        minInicio.setDate(minInicio.getDate() + 2); // 48h de antelación
+
+                        const formatDate = d => d.toISOString().split('T')[0];
+
+                        const fechaInicioInput = document.getElementById('fecha_inicio');
+                        const fechaFinInput = document.getElementById('fecha_fin');
+
+                        if (fechaInicioInput) fechaInicioInput.min = formatDate(minInicio);
+
+                        // Cuando cambia la fecha de inicio, ajustar el min de fecha de fin
+                        if (fechaInicioInput && fechaFinInput) {
+                            fechaInicioInput.addEventListener('change', function() {
+                                if (this.value) {
+                                    const inicio = new Date(this.value);
+                                    inicio.setDate(inicio.getDate() + 1); // mínimo 1 día de reserva
+                                    fechaFinInput.min = formatDate(inicio);
+                                    if (fechaFinInput.value && fechaFinInput.value < fechaFinInput.min) {
+                                        fechaFinInput.value = fechaFinInput.min;
+                                    }
+                                }
+                            });
+                            // Disparar evento por si ya tiene valor
+                            if (fechaInicioInput.value) {
+                                fechaInicioInput.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    });
+                </script>
 
                 <div class="rounded-3xl border border-outline-variant/20 bg-surface-container-low p-6 shadow-sm" data-resumen-pago>
                     <div class="flex items-start justify-between gap-4">

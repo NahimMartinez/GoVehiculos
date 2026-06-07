@@ -12,7 +12,7 @@ from django.db.models import Q
 from datetime import datetime, time, timedelta
 
 from .forms import CheckoutPagoForm, ReservarVehiculoForm
-from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
+from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reembolso, Reserva
 from .serializer import (
     EstadoReservaSerializer,
     FranquiciaTarjetaSerializer,
@@ -30,69 +30,21 @@ from .estrategias import (
 )
 from decimal import Decimal
 
+# =====================================================================
+# CONSTANTES
+# =====================================================================
+CHECKOUT_TIMEOUT_MINUTOS = 30
+HORAS_ANTELACION_CANCELACION = 24
 
-def obtener_reservas_usuario_view(request):
-    """
-    Vista que obtiene y muestra las reservas del usuario actual.
-    Separa las reservas en 'activas' (pendientes o confirmadas) y el 'historial' 
-    (las que ya finalizaron o fueron canceladas).
-    """
-    _finalizar_reservas_vencidas(Reserva.objects.filter(cliente=request.user))
 
-    reservas = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca').filter(cliente=request.user).order_by('-fecha_reserva')
-
-    activos = reservas.filter(Q(estado_reserva__nombre__iexact='Pendiente') | Q(estado_reserva__nombre__iexact='Confirmada'))
-    historial = reservas.exclude(id__in=activos.values_list('id', flat=True))
-
-    contexto = {
-        'activos': activos,
-        'historial': historial,
-    }
-
-    return render(request, 'reservas/mis_reservas.html', contexto)
-
-def obtener_metodos_de_pago():
-    return MetodoPago.objects.all()
-
-def reservar_view(request):
-    """
-    Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML 
-    que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el 
-    vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' 
-    se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
-    """
-    usuario = request.user
-    puede_reservar = request.user.is_authenticated and _usuario_valido(request.user)
-    mensaje_reserva = None
-
-    if not request.user.is_authenticated:
-        mensaje_reserva = 'Debes iniciar sesion para reservar.'
-    elif not puede_reservar:
-        mensaje_reserva = 'Solo los usuarios con rol Cliente/Socio pueden reservar.'
-
-    vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
-        activo=True,
-        esta_aprobado=True,
-    ).order_by('modelo__marca__nombre', 'modelo__nombre', 'matricula')
-
-    vehiculo_seleccionado = None
-    vehiculo_id = request.GET.get('vehiculo_id')
-    if vehiculo_id:
-        vehiculo_seleccionado = vehiculos_disponibles.filter(id=vehiculo_id).first()
-
-    contexto = {
-        'usuario': usuario,
-        'vehiculos_disponibles': vehiculos_disponibles,
-        'vehiculo_seleccionado': vehiculo_seleccionado,
-        'puede_reservar': puede_reservar,
-        'mensaje_reserva': mensaje_reserva,
-    }
-
-    return render(request, 'reservas/reserva.html', contexto)
+# =====================================================================
+# HELPERS INTERNOS
+# =====================================================================
 
 def _usuario_valido(user):
-    """Método para verificar si un usuario es apto para reservar."""
+    """Verifica si un usuario es apto para reservar (debe pertenecer a grupo Cliente o Socio)."""
     return user.groups.filter(name__in=[ROLE_CLIENTE, ROLE_SOCIO]).exists()
+
 
 def _obtener_estado(nombre_estado):
     """Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo."""
@@ -102,21 +54,15 @@ def _obtener_estado(nombre_estado):
     return estado
 
 
-def _reserva_esta_finalizada(reserva):
-    """
-    Verifica si el estado actual de la reserva es 'Finalizada'.
-    Retorna True si es así, False en caso contrario.
-    """
+def _reserva_tiene_estado(reserva, nombre_estado):
+    """Verifica si la reserva tiene un estado específico (comparación case-insensitive)."""
     if not reserva.estado_reserva:
         return False
-    return reserva.estado_reserva.nombre.strip().lower() == 'finalizada'
+    return reserva.estado_reserva.nombre.strip().lower() == nombre_estado.strip().lower()
 
 
 def _reserva_ya_vencio(reserva):
-    """
-    Comprueba si la reserva ya superó su fecha de fin comparándola
-    con la fecha actual.
-    """
+    """Comprueba si la reserva ya superó su fecha de fin comparándola con la fecha actual."""
     return reserva.fecha_fin < timezone.localdate()
 
 
@@ -132,42 +78,40 @@ def _finalizar_reservas_vencidas(reservas_qs):
         estado_reserva__nombre__iexact='Finalizada',
     ).update(estado_reserva=estado_finalizada)
 
-def cancelar_reserva_view(request, reserva_id):
-    """
-    Vista POST para que un usuario pueda cancelar una reserva existente.
-    Realiza validaciones para evitar la cancelación de reservas que ya vencieron
-    o ya se encuentran finalizadas.
-    """
-    if request.method == 'POST':
-        #  Recuperamos la reserva asegurándonos de que pertenezca al usuario logueado 
-        reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
 
-        if _reserva_ya_vencio(reserva):
-            if not _reserva_esta_finalizada(reserva):
-                reserva.estado_reserva = _obtener_estado('Finalizada')
-                reserva.save(update_fields=['estado_reserva'])
+def _cancelar_reservas_pendientes_expiradas(reservas_qs):
+    """
+    Cancela masivamente las reservas pendientes cuyo plazo de checkout ya expiró.
+    Esto libera vehículos bloqueados por usuarios que no completaron el pago a tiempo.
+    """
+    estado_cancelada = _obtener_estado('Cancelada')
+    ahora = timezone.now()
+    return reservas_qs.filter(
+        estado_reserva__nombre__iexact='Pendiente',
+        checkout_expira_en__isnull=False,
+        checkout_expira_en__lt=ahora,
+    ).update(estado_reserva=estado_cancelada)
 
-            messages.error(request, 'Esta reserva ya finalizó, por lo que no se puede cancelar.')
-            return redirect('mis_reservas')
-        
-        # Obtenemos el estado "Cancelada"
+
+def _solicitud_prefiere_json(request):
+    """Verifica si la solicitud entrante indica preferencia por una respuesta JSON."""
+    return bool(request.content_type and 'application/json' in request.content_type)
+
+
+def _payload_reserva(request):
+    """
+    Extrae los datos de la solicitud, ya sea desde el cuerpo JSON o desde
+    los datos POST tradicionales. Esto permite que la vista de creación de reserva
+    maneje solicitudes tanto JSON (API) como formulario HTML.
+    """
+    if request.content_type and 'application/json' in request.content_type:
         try:
-            estado_cancelada = EstadoReserva.objects.get(nombre__iexact='Cancelada')
-        except EstadoReserva.DoesNotExist:
-            messages.error(request, 'Error del sistema: El estado "Cancelada" no existe.')
-            return redirect('mis_reservas')
+            body = request.body.decode('utf-8') if request.body else '{}'
+            return json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return None
+    return request.POST
 
-        reserva.estado_reserva = estado_cancelada
-        reserva.save()
-        messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
-            
-    return redirect('mis_reservas')
-
-def _reserva_esta_cancelada(reserva):
-    """Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado)."""
-    if not reserva.estado_reserva:
-        return False
-    return reserva.estado_reserva.nombre.strip().lower() == 'cancelada'
 
 def _reserva_a_dict(reserva):
     """Convierte una instancia de Reserva en un diccionario serializable para respuestas JSON."""
@@ -182,6 +126,59 @@ def _reserva_a_dict(reserva):
         'estado_reserva_id': reserva.estado_reserva_id,
         'fecha_reserva': reserva.fecha_reserva.isoformat(),
     }
+
+
+def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formulario=None, reserva=None, mensaje_reserva=None, tipo_reserva=None, errores=None):
+    """
+    Construye el diccionario de contexto base para renderizar la plantilla HTML
+    de reservas, precargando vehículos disponibles y estado del formulario.
+    """
+    vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
+        activo=True,
+        esta_aprobado=True,
+    ).order_by('modelo__marca__nombre', 'modelo__nombre', 'matricula')
+
+    if vehiculo_seleccionado is None:
+        vehiculo_id = request.GET.get('vehiculo_id')
+        if vehiculo_id:
+            vehiculo_seleccionado = vehiculos_disponibles.filter(id=vehiculo_id).first()
+
+    return {
+        'usuario': request.user,
+        'vehiculos_disponibles': vehiculos_disponibles,
+        'vehiculo_seleccionado': vehiculo_seleccionado,
+        'puede_reservar': request.user.is_authenticated and _usuario_valido(request.user),
+        'mensaje_reserva': mensaje_reserva,
+        'tipo_reserva': tipo_reserva,
+        'reserva_creada': reserva,
+        'errores_reserva': errores or {},
+        'datos_formulario': datos_formulario or {},
+    }
+
+
+def _respuesta_reserva(request, *, ok, mensaje, status_code, reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None):
+    """
+    Despachador de respuestas: retorna JSON o HTML según la preferencia de la solicitud.
+    """
+    if _solicitud_prefiere_json(request):
+        payload = {'ok': ok, 'mensaje': mensaje}
+        if reserva is not None:
+            payload['reserva'] = reserva
+        if errores:
+            payload['errores'] = errores
+        return JsonResponse(payload, status=status_code)
+
+    # Respuesta HTML
+    contexto = _contexto_reserva_base(
+        request,
+        vehiculo_seleccionado=vehiculo_seleccionado,
+        datos_formulario=datos_formulario,
+        reserva=reserva,
+        mensaje_reserva=mensaje,
+        tipo_reserva='success' if ok else 'error',
+        errores=errores,
+    )
+    return render(request, 'reservas/reserva.html', contexto, status=status_code)
 
 
 def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
@@ -219,7 +216,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
         estado_pendiente = _obtener_estado('Pendiente')
         cantidad_dias = (fecha_fin - fecha_inicio).days
 
-        # Calculamos el monto base de la reserva (días × precio por día). El recargo/descuento por método de pago se aplica en el checkout.
+        # Calculamos el monto base de la reserva (días x precio por día). El recargo/descuento por método de pago se aplica en el checkout.
         monto_base = cantidad_dias * vehiculo_bloqueado.precio_x_dia
 
         reserva = Reserva.objects.create(
@@ -229,252 +226,24 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
             estado_reserva=estado_pendiente,
             cliente=usuario,
             vehiculo=vehiculo_bloqueado,
+            checkout_expira_en=timezone.now() + timedelta(minutes=CHECKOUT_TIMEOUT_MINUTOS),
         )
 
     return reserva, None
 
-def _payload_reserva(request):
+
+def _procesar_pago_reserva(reserva, metodo_pago_nombre, datos_pago, franquicia_id=None):
     """
-    Se encarga de extraer los datos de la solicitud, ya sea desde el cuerpo JSON o desde los datos POST tradicionales. 
-    Esto permite que la vista crear_reserva_view pueda manejar solicitudes tanto con contenido JSON (por ejemplo, desde una API) 
-    como con datos de formulario estándar (por ejemplo, desde un formulario HTML), lo que hace que la vista sea más flexible 
-    y compatible con diferentes tipos de clientes.
+    Lógica compartida para procesar el pago de una reserva.
+    Usada tanto por la vista web (procesar_checkout_view) como por la API REST (PagoViewSet.create).
+    Retorna una tupla (pago, monto_final, resultado_pago, error_response_dict).
+    Si hay error, pago será None y error_response_dict contendrá los datos del error.
     """
-    if request.content_type and 'application/json' in request.content_type:
-        try:
-            body = request.body.decode('utf-8') if request.body else '{}'
-            return json.loads(body)
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            return None
-
-    return request.POST
-
-
-def _solicitud_prefiere_json(request):
-    """Verifica si la solicitud entrante indica preferencia por una respuesta JSON."""
-    return bool(request.content_type and 'application/json' in request.content_type)
-
-
-def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formulario=None, reserva=None, mensaje_reserva=None, tipo_reserva=None, errores=None):
-    """
-    Construye el diccionario de contexto base para renderizar la plantilla HTML
-    de reservas, precargando vehículos disponibles y estado del formulario.
-    """
-    vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
-        activo=True,
-        esta_aprobado=True,
-    ).order_by('modelo__marca__nombre', 'modelo__nombre', 'matricula')
-
-    if vehiculo_seleccionado is None:
-        vehiculo_id = request.GET.get('vehiculo_id')
-        if vehiculo_id:
-            vehiculo_seleccionado = vehiculos_disponibles.filter(id=vehiculo_id).first()
-
-    return {
-        'usuario': request.user,
-        'vehiculos_disponibles': vehiculos_disponibles,
-        'vehiculo_seleccionado': vehiculo_seleccionado,
-        'puede_reservar': request.user.is_authenticated and _usuario_valido(request.user),
-        'mensaje_reserva': mensaje_reserva,
-        'tipo_reserva': tipo_reserva,
-        'reserva_creada': reserva,
-        'errores_reserva': errores or {},
-        'datos_formulario': datos_formulario or {},
-    }
-
-
-def _respuesta_reserva_html(request, *, mensaje_reserva, tipo_reserva='error', reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None, status_code=200):
-    """
-    Helper para retornar una respuesta renderizada en HTML cuando ocurre un éxito o error 
-    durante el proceso de reserva a través de interfaz web.
-    """
-    contexto = _contexto_reserva_base(
-        request,
-        vehiculo_seleccionado=vehiculo_seleccionado,
-        datos_formulario=datos_formulario,
-        reserva=reserva,
-        mensaje_reserva=mensaje_reserva,
-        tipo_reserva=tipo_reserva,
-        errores=errores,
-    )
-    return render(request, 'reservas/reserva.html', contexto, status=status_code)
-
-
-def _respuesta_reserva(request, *, ok, mensaje, status_code, reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None):
-    """
-    Actúa como despachador de respuestas (Dispatcher). Retorna una respuesta JSON o HTML 
-    dependiendo de lo que la solicitud prefiera (API vs Navegador).
-    """
-    if _solicitud_prefiere_json(request):
-        payload = {'ok': ok, 'mensaje': mensaje}
-        if reserva is not None:
-            payload['reserva'] = reserva
-        if errores:
-            payload['errores'] = errores
-        return JsonResponse(payload, status=status_code)
-
-    return _respuesta_reserva_html(
-        request,
-        mensaje_reserva=mensaje,
-        tipo_reserva='success' if ok else 'error',
-        reserva=reserva,
-        errores=errores,
-        datos_formulario=datos_formulario,
-        vehiculo_seleccionado=vehiculo_seleccionado,
-        status_code=status_code,
-    )
-
-
-@require_POST
-def crear_reserva_view(request):
-    """
-    Vista principal para procesar la creación de una nueva reserva.
-    Recibe los datos por POST (HTML form) o JSON, los valida con ReservarVehiculoForm 
-    y procede a crear la reserva si no hay conflictos. Redirige al checkout en caso de éxito.
-    """
-    if not request.user.is_authenticated:
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='Debes iniciar sesion para reservar.',
-            status_code=401,
-        )
-
-    if not _usuario_valido(request.user):
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='Solo los usuarios con rol Cliente/Socio pueden reservar.',
-            status_code=403,
-        )
-
-    payload = _payload_reserva(request)
-    if payload is None:
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='El cuerpo de la solicitud es invalido.',
-            status_code=400,
-        )
-
-    form = ReservarVehiculoForm(payload)
-    if not form.is_valid():
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje='Revisá los campos del formulario.',
-            status_code=400,
-            errores=form.errors.get_json_data(),
-            datos_formulario=payload,
-        )
-
-    vehiculo = form.cleaned_data['vehiculo']
-    fecha_inicio = form.cleaned_data['fecha_inicio']
-    fecha_fin = form.cleaned_data['fecha_fin']
-    reserva, mensaje_error = _crear_reserva_en_transaccion(
-        usuario=request.user,
-        vehiculo=vehiculo,
-        fecha_inicio=fecha_inicio,
-        fecha_fin=fecha_fin,
-    )
-
-    if mensaje_error:
-        return _respuesta_reserva(
-            request,
-            ok=False,
-            mensaje=mensaje_error,
-            status_code=400,
-            datos_formulario=payload,
-            vehiculo_seleccionado=vehiculo,
-        )
-
-    if _solicitud_prefiere_json(request):
-        return _respuesta_reserva(
-            request,
-            ok=True,
-            mensaje='Reserva creada correctamente. Proceda al checkout.',
-            status_code=201,
-            reserva=_reserva_a_dict(reserva),
-            vehiculo_seleccionado=vehiculo,
-        )
-
-    # Redirige automáticamente al checkout para completar el pago
-    return redirect('checkout', reserva_id=reserva.id)
-
-
-
-# VISTAS DE CHECKOUT
-def checkout_view(request, reserva_id):
-    """GET: Renderiza la página de checkout con la info de la reserva y los métodos de pago."""
-    if not request.user.is_authenticated:
-        return redirect('login')
-
-    reserva = get_object_or_404(
-        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
-        id=reserva_id,
-        cliente=request.user,
-    )
-
-    # Solo se puede hacer checkout de reservas pendientes
-    if not reserva.estado_reserva or reserva.estado_reserva.nombre.strip().lower() != 'pendiente':
-        messages.error(request, 'Esta reserva no está pendiente de pago.')
-        return redirect('mis_reservas')
-
-    metodos = obtener_metodos_de_pago()
-    franquicias = FranquiciaTarjeta.objects.all().order_by('nombre')
-
-    # Preparar franquicias como JSON para el JS dinámico
-    franquicias_data = []
-    for f in franquicias:
-        franquicias_data.append({
-            'id': f.id,
-            'nombre': f.nombre,
-            'tipo': f.tipo,
-        })
-
-    import json as json_lib
-    contexto = {
-        'reserva': reserva,
-        'metodos': metodos,
-        'franquicias': franquicias,
-        'franquicias_json': json_lib.dumps(franquicias_data),
-        'usuario': request.user,
-    }
-
-    return render(request, 'reservas/checkout.html', contexto)
-
-
-@require_POST
-def procesar_checkout_view(request, reserva_id):
-    """POST: Procesa el pago del checkout usando el patrón Strategy."""
-    if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'mensaje': 'Debes iniciar sesión.'}, status=401)
-
-    reserva = get_object_or_404(
-        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'cliente'),
-        id=reserva_id,
-        cliente=request.user,
-    )
-
-    # Solo se puede pagar reservas pendientes
-    if not reserva.estado_reserva or reserva.estado_reserva.nombre.strip().lower() != 'pendiente':
-        return JsonResponse({'ok': False, 'mensaje': 'Esta reserva no está pendiente de pago.'}, status=400)
-
-    # Parsear el body como JSON
-    try:
-        body = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'mensaje': 'Datos de solicitud inválidos.'}, status=400)
-
-    metodo_pago_nombre = body.get('metodo_pago_nombre', '')
-    datos_pago = body.get('datos_pago', {})
-    franquicia_id = body.get('franquicia_id') or datos_pago.get('franquicia_id')
-
     # Validar el método de pago
     try:
         estrategia = obtener_estrategia_pago(metodo_pago_nombre)
     except ValueError as e:
-        return JsonResponse({'ok': False, 'mensaje': str(e)}, status=400)
+        return None, None, None, {'ok': False, 'mensaje': str(e)}
 
     # Inyectar franquicia_id en datos_pago para la validación de la estrategia
     if franquicia_id:
@@ -483,11 +252,11 @@ def procesar_checkout_view(request, reserva_id):
     # Validar datos de pago con la estrategia
     resultado_validacion = estrategia.validar_datos(datos_pago)
     if not resultado_validacion['valido']:
-        return JsonResponse({
+        return None, None, None, {
             'ok': False,
-            'mensaje': 'Revisá los datos de pago.',
+            'mensaje': 'Revisa los datos de pago.',
             'errores': resultado_validacion['errores'],
-        }, status=400)
+        }
 
     # Calcular el monto final con recargo/descuento
     contexto_pago = ContextoPago(estrategia)
@@ -497,15 +266,11 @@ def procesar_checkout_view(request, reserva_id):
     resultado_pago = contexto_pago.procesar_pago(datos_pago)
 
     if not resultado_pago['exito']:
-        return JsonResponse({
-            'ok': False,
-            'mensaje': resultado_pago['mensaje'],
-        }, status=400)
+        return None, None, None, {'ok': False, 'mensaje': resultado_pago['mensaje']}
 
     # Obtener el MetodoPago del catálogo
     metodo_pago_obj = MetodoPago.objects.filter(nombre__iexact=metodo_pago_nombre).first()
     if not metodo_pago_obj:
-        # Crearlo si no existe (por robustez)
         metodo_pago_obj = MetodoPago.objects.create(nombre=metodo_pago_nombre)
 
     # Obtener franquicia si aplica
@@ -527,10 +292,298 @@ def procesar_checkout_view(request, reserva_id):
             metodo_detalle=detalle.get('cbu_cvu_parcial', ''),
         )
 
-        # Actualizar monto_total de la reserva con el recargo/descuento aplicado
         reserva.monto_total = monto_final
         reserva.estado_reserva = _obtener_estado('Confirmada')
         reserva.save(update_fields=['estado_reserva', 'monto_total'])
+
+    return pago, monto_final, resultado_pago, None
+
+
+def _crear_reembolso_reserva(reserva, motivo='cancelacion_usuario'):
+    """
+    Crea un reembolso simulado para una reserva confirmada que se cancela.
+    Se reembolsa el 75% del monto pagado (retención del 25% por gestión).
+    Retorna el objeto Reembolso creado, o None si la reserva no tiene pago.
+    """
+    try:
+        pago = reserva.pago
+    except Pago.DoesNotExist:
+        return None
+
+    if pago is None:
+        return None
+
+    # Verificar que no exista ya un reembolso para este pago
+    if hasattr(pago, 'reembolso'):
+        return pago.reembolso
+
+    monto_reembolso = (pago.monto * Reembolso.PORCENTAJE_REEMBOLSO).quantize(Decimal('0.01'))
+
+    # Generar comprobante de reembolso
+    from .estrategias import EstrategiaPago
+    comprobante = EstrategiaPago._generar_comprobante(None, 'RMB')
+
+    reembolso = Reembolso.objects.create(
+        pago=pago,
+        monto=monto_reembolso,
+        estado='procesado',
+        motivo=motivo,
+        descripcion=f'Reembolso del 75% del pago original (${pago.monto}). Retencion del 25% por gestion.',
+        comprobante_transaccion=comprobante,
+        fecha_procesamiento=timezone.now(),
+    )
+
+    return reembolso
+
+
+# =====================================================================
+# VISTAS WEB (HTML)
+# =====================================================================
+
+def obtener_reservas_usuario_view(request):
+    """
+    Vista que obtiene y muestra las reservas del usuario actual.
+    Separa las reservas en 'activas' (pendientes o confirmadas) y el 'historial' 
+    (las que ya finalizaron o fueron canceladas).
+    """
+    reservas_usuario = Reserva.objects.filter(cliente=request.user)
+    _finalizar_reservas_vencidas(reservas_usuario)
+    _cancelar_reservas_pendientes_expiradas(reservas_usuario)
+
+    reservas = Reserva.objects.select_related(
+        'estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca'
+    ).filter(cliente=request.user).order_by('-fecha_reserva')
+
+    activos = reservas.filter(Q(estado_reserva__nombre__iexact='Pendiente') | Q(estado_reserva__nombre__iexact='Confirmada'))
+    historial = reservas.exclude(id__in=activos.values_list('id', flat=True))
+
+    contexto = {
+        'activos': activos,
+        'historial': historial,
+    }
+
+    return render(request, 'reservas/mis_reservas.html', contexto)
+
+
+def reservar_view(request):
+    """
+    GET: Muestra el formulario de reserva de vehículo.
+    Reutiliza _contexto_reserva_base para construir el contexto con vehículos disponibles.
+    """
+    usuario = request.user
+    mensaje_reserva = None
+
+    if not request.user.is_authenticated:
+        mensaje_reserva = 'Debes iniciar sesion para reservar.'
+    elif not _usuario_valido(request.user):
+        mensaje_reserva = 'Solo los usuarios con rol Cliente/Socio pueden reservar.'
+
+    contexto = _contexto_reserva_base(request, mensaje_reserva=mensaje_reserva)
+    return render(request, 'reservas/reserva.html', contexto)
+
+
+@require_POST
+def crear_reserva_view(request):
+    """
+    Vista principal para procesar la creación de una nueva reserva.
+    Recibe los datos por POST (HTML form) o JSON, los valida con ReservarVehiculoForm 
+    y procede a crear la reserva si no hay conflictos. Redirige al checkout en caso de éxito.
+    """
+    if not request.user.is_authenticated:
+        return _respuesta_reserva(request, ok=False, mensaje='Debes iniciar sesion para reservar.', status_code=401)
+
+    if not _usuario_valido(request.user):
+        return _respuesta_reserva(request, ok=False, mensaje='Solo los usuarios con rol Cliente/Socio pueden reservar.', status_code=403)
+
+    payload = _payload_reserva(request)
+    if payload is None:
+        return _respuesta_reserva(request, ok=False, mensaje='El cuerpo de la solicitud es invalido.', status_code=400)
+
+    form = ReservarVehiculoForm(payload)
+    if not form.is_valid():
+        return _respuesta_reserva(
+            request, ok=False, mensaje='Revisa los campos del formulario.',
+            status_code=400, errores=form.errors.get_json_data(), datos_formulario=payload,
+        )
+
+    vehiculo = form.cleaned_data['vehiculo']
+    fecha_inicio = form.cleaned_data['fecha_inicio']
+    fecha_fin = form.cleaned_data['fecha_fin']
+    reserva, mensaje_error = _crear_reserva_en_transaccion(
+        usuario=request.user, vehiculo=vehiculo,
+        fecha_inicio=fecha_inicio, fecha_fin=fecha_fin,
+    )
+
+    if mensaje_error:
+        return _respuesta_reserva(
+            request, ok=False, mensaje=mensaje_error, status_code=400,
+            datos_formulario=payload, vehiculo_seleccionado=vehiculo,
+        )
+
+    if _solicitud_prefiere_json(request):
+        return _respuesta_reserva(
+            request, ok=True, mensaje='Reserva creada correctamente. Proceda al checkout.',
+            status_code=201, reserva=_reserva_a_dict(reserva), vehiculo_seleccionado=vehiculo,
+        )
+
+    # Redirige automáticamente al checkout para completar el pago
+    return redirect('checkout', reserva_id=reserva.id)
+
+
+def cancelar_reserva_view(request, reserva_id):
+    """
+    Vista POST para que un usuario pueda cancelar una reserva existente.
+    - Reservas Pendientes: se cancelan directamente (sin reembolso, no hubo pago).
+    - Reservas Confirmadas: se verifica la política de 24h de antelación.
+      Si tiene +24h se cancela con reembolso del 75%. Si tiene -24h se rechaza.
+    """
+    if request.method == 'POST':
+        reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
+
+        # Si ya venció, marcar como finalizada
+        if _reserva_ya_vencio(reserva):
+            if not _reserva_tiene_estado(reserva, 'Finalizada'):
+                reserva.estado_reserva = _obtener_estado('Finalizada')
+                reserva.save(update_fields=['estado_reserva'])
+            messages.error(request, 'Esta reserva ya finalizó, por lo que no se puede cancelar.')
+            return redirect('mis_reservas')
+
+        # Reserva Pendiente: cancelar directamente
+        if _reserva_tiene_estado(reserva, 'Pendiente'):
+            reserva.estado_reserva = _obtener_estado('Cancelada')
+            reserva.save(update_fields=['estado_reserva'])
+            messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
+            return redirect('mis_reservas')
+
+        # Reserva Confirmada: aplicar política de cancelación con 24h de antelación
+        if _reserva_tiene_estado(reserva, 'Confirmada'):
+            horas_restantes = (
+                timezone.datetime.combine(reserva.fecha_inicio, time.min, tzinfo=timezone.get_current_timezone())
+                - timezone.now()
+            ).total_seconds() / 3600
+
+            if horas_restantes < HORAS_ANTELACION_CANCELACION:
+                messages.error(
+                    request,
+                    f'No se puede cancelar esta reserva. La politica de cancelacion requiere '
+                    f'al menos {HORAS_ANTELACION_CANCELACION} horas de antelacion antes del inicio.'
+                )
+                return redirect('mis_reservas')
+
+            # Cancelar con reembolso del 75%
+            with transaction.atomic():
+                reserva.estado_reserva = _obtener_estado('Cancelada')
+                reserva.save(update_fields=['estado_reserva'])
+                reembolso = _crear_reembolso_reserva(reserva)
+
+            if reembolso:
+                messages.success(
+                    request,
+                    f'La reserva de {reserva.vehiculo.modelo} fue cancelada. '
+                    f'Se proceso un reembolso de ${reembolso.monto} (75% del pago original). '
+                    f'Comprobante: {reembolso.comprobante_transaccion}'
+                )
+            else:
+                messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
+            return redirect('mis_reservas')
+
+        # Cualquier otro estado no permite cancelación
+        messages.error(request, 'Esta reserva no se puede cancelar en su estado actual.')
+
+    return redirect('mis_reservas')
+
+
+# =====================================================================
+# VISTAS DE CHECKOUT
+# =====================================================================
+
+def checkout_view(request, reserva_id):
+    """GET: Renderiza la página de checkout con la info de la reserva y los métodos de pago."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
+        id=reserva_id, cliente=request.user,
+    )
+
+    # Solo se puede hacer checkout de reservas pendientes
+    if not _reserva_tiene_estado(reserva, 'Pendiente'):
+        messages.error(request, 'Esta reserva no esta pendiente de pago.')
+        return redirect('mis_reservas')
+
+    # Verificar si la reserva expiró por timeout del checkout
+    if reserva.checkout_expira_en and timezone.now() > reserva.checkout_expira_en:
+        reserva.estado_reserva = _obtener_estado('Cancelada')
+        reserva.save(update_fields=['estado_reserva'])
+        messages.error(request, 'El tiempo para completar el pago ha expirado. La reserva fue cancelada automaticamente.')
+        return redirect('mis_reservas')
+
+    metodos = MetodoPago.objects.all()
+    franquicias = FranquiciaTarjeta.objects.all().order_by('nombre')
+
+    franquicias_data = [{'id': f.id, 'nombre': f.nombre, 'tipo': f.tipo} for f in franquicias]
+
+    # Calcular segundos restantes para el countdown del frontend
+    segundos_restantes = 0
+    if reserva.checkout_expira_en:
+        delta = reserva.checkout_expira_en - timezone.now()
+        segundos_restantes = max(0, int(delta.total_seconds()))
+
+    contexto = {
+        'reserva': reserva,
+        'metodos': metodos,
+        'franquicias': franquicias,
+        'franquicias_json': json.dumps(franquicias_data),
+        'usuario': request.user,
+        'segundos_restantes': segundos_restantes,
+    }
+
+    return render(request, 'reservas/checkout.html', contexto)
+
+
+@require_POST
+def procesar_checkout_view(request, reserva_id):
+    """POST: Procesa el pago del checkout usando el patrón Strategy."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'mensaje': 'Debes iniciar sesion.'}, status=401)
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'cliente'),
+        id=reserva_id, cliente=request.user,
+    )
+
+    # Solo se puede pagar reservas pendientes
+    if not _reserva_tiene_estado(reserva, 'Pendiente'):
+        return JsonResponse({'ok': False, 'mensaje': 'Esta reserva no esta pendiente de pago.'}, status=400)
+
+    # Verificar expiración del checkout
+    if reserva.checkout_expira_en and timezone.now() > reserva.checkout_expira_en:
+        reserva.estado_reserva = _obtener_estado('Cancelada')
+        reserva.save(update_fields=['estado_reserva'])
+        return JsonResponse({
+            'ok': False,
+            'mensaje': 'El tiempo para completar el pago ha expirado. La reserva fue cancelada.',
+        }, status=400)
+
+    # Parsear el body como JSON
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'ok': False, 'mensaje': 'Datos de solicitud invalidos.'}, status=400)
+
+    metodo_pago_nombre = body.get('metodo_pago_nombre', '')
+    datos_pago = body.get('datos_pago', {})
+    franquicia_id = body.get('franquicia_id') or datos_pago.get('franquicia_id')
+
+    # Usar el helper compartido para procesar el pago
+    pago, monto_final, resultado_pago, error = _procesar_pago_reserva(
+        reserva, metodo_pago_nombre, datos_pago, franquicia_id,
+    )
+
+    if error:
+        status_code = 400
+        return JsonResponse(error, status=status_code)
 
     return JsonResponse({
         'ok': True,
@@ -552,7 +605,7 @@ def cancelar_checkout_view(request, reserva_id):
 
     reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
 
-    if reserva.estado_reserva and reserva.estado_reserva.nombre.strip().lower() == 'pendiente':
+    if _reserva_tiene_estado(reserva, 'Pendiente'):
         reserva.estado_reserva = _obtener_estado('Cancelada')
         reserva.save(update_fields=['estado_reserva'])
         messages.info(request, 'Has cancelado el pago. La reserva fue liberada.')
@@ -569,8 +622,7 @@ def checkout_exitoso_view(request, reserva_id):
 
     reserva = get_object_or_404(
         Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
-        id=reserva_id,
-        cliente=request.user,
+        id=reserva_id, cliente=request.user,
     )
 
     pago = Pago.objects.select_related('metodo_pago', 'franquicia').filter(reserva=reserva).first()
@@ -584,7 +636,10 @@ def checkout_exitoso_view(request, reserva_id):
     return render(request, 'reservas/checkout_exitoso.html', contexto)
 
 
+# =====================================================================
 # VIEWSETS DE LA API REST
+# =====================================================================
+
 class ReservaViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -655,7 +710,7 @@ class ReservaViewSet(
     def destroy(self, request, *args, **kwargs):
         """
         Cancela una reserva existente desde la API.
-        Verifica que la reserva pertenezca al usuario y que se cancele con al menos un día de anticipación.
+        Verifica que la reserva pertenezca al usuario y aplica la política de cancelación.
         """
         reserva = self.get_object()
         if reserva.cliente_id != request.user.id:
@@ -664,22 +719,42 @@ class ReservaViewSet(
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if _reserva_esta_cancelada(reserva):
+        if _reserva_tiene_estado(reserva, 'Cancelada'):
             return Response(
                 {'ok': True, 'mensaje': 'La reserva ya se encuentra cancelada.'},
                 status=status.HTTP_200_OK,
             )
 
-        hoy = timezone.localdate()
-        if reserva.fecha_inicio <= hoy:
-            return Response(
-                {
-                    'ok': False,
-                    'mensaje': 'Solo puedes cancelar la reserva hasta un dia antes de la fecha de inicio.',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Para reservas confirmadas, verificar la política de 24h
+        if _reserva_tiene_estado(reserva, 'Confirmada'):
+            horas_restantes = (
+                timezone.datetime.combine(reserva.fecha_inicio, time.min, tzinfo=timezone.get_current_timezone())
+                - timezone.now()
+            ).total_seconds() / 3600
 
+            if horas_restantes < HORAS_ANTELACION_CANCELACION:
+                return Response(
+                    {
+                        'ok': False,
+                        'mensaje': f'Solo puedes cancelar la reserva hasta {HORAS_ANTELACION_CANCELACION} horas antes de la fecha de inicio.',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            with transaction.atomic():
+                reserva.estado_reserva = _obtener_estado('Cancelada')
+                reserva.save(update_fields=['estado_reserva'])
+                reembolso = _crear_reembolso_reserva(reserva)
+
+            data = {'ok': True, 'mensaje': 'Reserva cancelada correctamente.', 'reserva': ReservaSerializer(reserva).data}
+            if reembolso:
+                data['reembolso'] = {
+                    'monto': str(reembolso.monto),
+                    'comprobante': reembolso.comprobante_transaccion,
+                }
+            return Response(data, status=status.HTTP_200_OK)
+
+        # Reserva pendiente: cancelar sin reembolso
         reserva.estado_reserva = _obtener_estado('Cancelada')
         reserva.save(update_fields=['estado_reserva'])
 
@@ -729,7 +804,7 @@ class PagoViewSet(
         ).order_by('-fecha_pago')
 
     def create(self, request, *args, **kwargs):
-        """API endpoint para procesar pagos. Usa el patrón Strategy para validar y procesar."""
+        """API endpoint para procesar pagos. Usa el helper compartido _procesar_pago_reserva."""
         reserva_id = request.data.get('reserva')
         metodo_pago_id = request.data.get('metodo_pago')
         datos_pago = request.data.get('datos_pago', {})
@@ -748,7 +823,7 @@ class PagoViewSet(
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if _reserva_esta_cancelada(reserva):
+        if _reserva_tiene_estado(reserva, 'Cancelada'):
             return Response(
                 {'ok': False, 'mensaje': 'No se puede registrar un pago sobre una reserva cancelada.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -769,60 +844,15 @@ class PagoViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Obtener y usar la estrategia
-        try:
-            estrategia = obtener_estrategia_pago(metodo_pago.nombre)
-        except ValueError as e:
-            return Response(
-                {'ok': False, 'mensaje': str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Validar datos de pago
-        resultado_validacion = estrategia.validar_datos(datos_pago)
-        if not resultado_validacion['valido']:
-            return Response(
-                {'ok': False, 'mensaje': 'Datos de pago inválidos.', 'errores': resultado_validacion['errores']},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Calcular monto final
-        contexto_pago = ContextoPago(estrategia)
-        monto_final = contexto_pago.ejecutar_estrategia(reserva.monto_total).quantize(Decimal('0.01'))
-
-        # Procesar pago
-        resultado_pago = contexto_pago.procesar_pago(datos_pago)
-        if not resultado_pago['exito']:
-            return Response(
-                {'ok': False, 'mensaje': resultado_pago.get('mensaje')},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Obtener franquicia si aplica
-        franquicia_obj = None
         franquicia_id = datos_pago.get('franquicia_id')
-        if franquicia_id:
-            franquicia_obj = FranquiciaTarjeta.objects.filter(id=franquicia_id).first()
 
-        detalle = resultado_pago.get('detalle', {})
+        # Usar el helper compartido
+        pago, monto_final, resultado_pago, error = _procesar_pago_reserva(
+            reserva, metodo_pago.nombre, datos_pago, franquicia_id,
+        )
 
-        with transaction.atomic():
-            pago = Pago.objects.create(
-                reserva=reserva,
-                metodo_pago=metodo_pago,
-                comprobante_transaccion=resultado_pago['comprobante'],
-                monto=monto_final,
-                franquicia=franquicia_obj,
-                nombre_titular=detalle.get('nombre_titular', datos_pago.get('titular_cuenta', '')),
-                ultimos_4_digitos=detalle.get('ultimos_4_digitos', ''),
-                metodo_detalle=detalle.get('cbu_cvu_parcial', ''),
-            )
-
-            estado_actual = reserva.estado_reserva.nombre.strip().lower() if reserva.estado_reserva else ''
-            if estado_actual == 'pendiente':
-                reserva.monto_total = monto_final
-                reserva.estado_reserva = _obtener_estado('Confirmada')
-                reserva.save(update_fields=['estado_reserva', 'monto_total'])
+        if error:
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
         mensaje_exito = f"{resultado_pago.get('mensaje', '')} Pago registrado correctamente."
         return Response(

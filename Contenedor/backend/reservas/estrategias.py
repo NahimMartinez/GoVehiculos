@@ -19,6 +19,11 @@ class EstrategiaPago(ABC):
         pass
 
     @abstractmethod
+    def obtener_nombre_metodo(self) -> str:
+        """Retorna el nombre legible del método de pago que representa esta estrategia."""
+        pass
+
+    @abstractmethod
     def validar_datos(self, datos_pago: dict) -> dict:
         """Valida los datos de pago según la estrategia. Retorna {'valido': bool, 'errores': []}."""
         pass
@@ -37,11 +42,32 @@ class EstrategiaPago(ABC):
         hash_parcial = hashlib.sha256(seed.encode()).hexdigest()[:8].upper()
         return f'{prefijo}-{timestamp}-{hash_parcial}'
 
+    def _simular_latencia(self, segundos: float = 2.0):
+        """Simula la latencia de red de un procesador de pagos externo."""
+        time.sleep(segundos)
+
+    @staticmethod
+    def _validar_luhn(numero: str) -> bool:
+        """Implementación del algoritmo de Luhn para validación de números de tarjeta."""
+        digitos = [int(d) for d in numero]
+        digitos.reverse()
+        total = 0
+        for i, digito in enumerate(digitos):
+            if i % 2 == 1:
+                digito *= 2
+                if digito > 9:
+                    digito -= 9
+            total += digito
+        return total % 10 == 0
+
 
 # 2. Estrategias Concretas
 
 class EstrategiaTarjetaCredito(EstrategiaPago):
     RECARGO = Decimal('0.10')  # 10% de recargo
+
+    def obtener_nombre_metodo(self) -> str:
+        return 'Tarjeta de crédito'
 
     def calcular_total(self, monto_base: Decimal) -> Decimal:
         recargo = monto_base * self.RECARGO
@@ -85,7 +111,7 @@ class EstrategiaTarjetaCredito(EstrategiaPago):
         return {'valido': len(errores) == 0, 'errores': errores}
 
     def procesar_pago(self, datos_pago: dict) -> dict:
-        time.sleep(2)  # Simula latencia de procesador de pagos
+        self._simular_latencia()
 
         # Simulamos un rechazo aleatorio del 5% para mayor realismo
         if random.random() < 0.05:
@@ -110,22 +136,11 @@ class EstrategiaTarjetaCredito(EstrategiaPago):
             },
         }
 
-    @staticmethod
-    def _validar_luhn(numero: str) -> bool:
-        """Implementación del algoritmo de Luhn para validación de números de tarjeta."""
-        digitos = [int(d) for d in numero]
-        digitos.reverse()
-        total = 0
-        for i, digito in enumerate(digitos):
-            if i % 2 == 1:
-                digito *= 2
-                if digito > 9:
-                    digito -= 9
-            total += digito
-        return total % 10 == 0
-
 
 class EstrategiaTarjetaDebito(EstrategiaPago):
+    def obtener_nombre_metodo(self) -> str:
+        return 'Tarjeta de débito'
+
     def calcular_total(self, monto_base: Decimal) -> Decimal:
         # La tarjeta de débito cobra el precio de lista (sin alteraciones)
         return monto_base
@@ -144,6 +159,8 @@ class EstrategiaTarjetaDebito(EstrategiaPago):
         numero_tarjeta = datos_pago.get('numero_tarjeta', '').replace(' ', '')
         if not numero_tarjeta or len(numero_tarjeta) != 16 or not numero_tarjeta.isdigit():
             errores.append('El número de tarjeta debe tener 16 dígitos.')
+        elif not self._validar_luhn(numero_tarjeta):
+            errores.append('El número de tarjeta no es válido (Luhn).')
 
         nombre_titular = datos_pago.get('nombre_titular', '').strip()
         if not nombre_titular:
@@ -159,7 +176,7 @@ class EstrategiaTarjetaDebito(EstrategiaPago):
         return {'valido': len(errores) == 0, 'errores': errores}
 
     def procesar_pago(self, datos_pago: dict) -> dict:
-        time.sleep(2)  # Simula latencia de API
+        self._simular_latencia()
 
         if random.random() < 0.05:
             return {
@@ -187,6 +204,9 @@ class EstrategiaTarjetaDebito(EstrategiaPago):
 class EstrategiaTransferencia(EstrategiaPago):
     DESCUENTO = Decimal('0.05')  # 5% de descuento
 
+    def obtener_nombre_metodo(self) -> str:
+        return 'Transferencia'
+
     def calcular_total(self, monto_base: Decimal) -> Decimal:
         descuento = monto_base * self.DESCUENTO
         return monto_base - descuento
@@ -212,7 +232,7 @@ class EstrategiaTransferencia(EstrategiaPago):
         return {'valido': len(errores) == 0, 'errores': errores}
 
     def procesar_pago(self, datos_pago: dict) -> dict:
-        time.sleep(2)  # Simula latencia de API
+        self._simular_latencia()
 
         if random.random() < 0.03:
             return {
@@ -258,6 +278,9 @@ class ContextoPago:
 
     def obtener_campos_requeridos(self) -> list:
         return self._estrategia.obtener_campos_requeridos()
+
+    def obtener_nombre_metodo(self) -> str:
+        return self._estrategia.obtener_nombre_metodo()
 
 
 def _normalizar_texto(texto: str) -> str:

@@ -13,6 +13,8 @@ class ReservarVehiculoForm(forms.Form):
 	fecha_fin = forms.DateField()
 
 	MAX_DIAS_RESERVA = 30 # Limite máximo de días para una reserva, lo que ayuda a controlar la duración de las reservas y evitar bloqueos prolongados de vehículos.
+	MIN_DIAS_ANTELACION = 2 # La fecha de inicio debe ser al menos 2 días (48 horas) a partir de hoy. Si hoy es día 1, la fecha más próxima posible es el día 3.
+	MIN_DIAS_RESERVA = 1 # Duración mínima de una reserva: al menos 1 día (24 horas).
 
 	def clean_vehiculo_id(self):
 		"""
@@ -35,7 +37,9 @@ class ReservarVehiculoForm(forms.Form):
 		Valida las fechas de inicio y fin de la reserva.
 		Verifica que:
 		- La fecha de inicio no esté en el pasado (comparando solo fechas sin considerar horas/minutos).
+		- La fecha de inicio tenga al menos MIN_DIAS_ANTELACION días de antelación.
 		- La fecha de fin sea estrictamente posterior a la fecha de inicio.
+		- La duración total sea de al menos MIN_DIAS_RESERVA día(s).
 		- La duración total de la reserva no supere el límite máximo (MAX_DIAS_RESERVA).
 		"""
 		cleaned_data = super().clean()
@@ -49,11 +53,26 @@ class ReservarVehiculoForm(forms.Form):
 		if fecha_inicio < hoy:
 			self.add_error('fecha_inicio', 'La fecha de inicio no puede estar en el pasado.')
 
+		# Antelación mínima de 48 horas (2 días). Si hoy es 1, fecha mínima es 3.
+		fecha_minima = hoy + timezone.timedelta(days=self.MIN_DIAS_ANTELACION)
+		if fecha_inicio < fecha_minima:
+			self.add_error(
+				'fecha_inicio',
+				f'La fecha de inicio debe ser al menos {self.MIN_DIAS_ANTELACION} dias a partir de hoy '
+				f'(fecha minima: {fecha_minima.strftime("%d/%m/%Y")}).'
+			)
+
 		if fecha_fin <= fecha_inicio:
 			self.add_error('fecha_fin', 'La fecha de fin debe ser mayor a la fecha de inicio.')
 			return cleaned_data
 
 		dias_reserva = (fecha_fin - fecha_inicio).days
+		if dias_reserva < self.MIN_DIAS_RESERVA:
+			self.add_error(
+				'fecha_fin',
+				f'La reserva debe tener al menos {self.MIN_DIAS_RESERVA} dia(s) de duracion.'
+			)
+
 		if dias_reserva > self.MAX_DIAS_RESERVA:
 			self.add_error(
 				'fecha_fin',
