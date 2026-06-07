@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Checkout — Pago de Reserva | GoVehiculos{% endblock %}
+{% block title %}Checkout — Pago de Reserva{% endblock %}
 {% block meta_description %}Completá el pago de tu reserva de vehículo de forma segura.{% endblock %}
 
 {% block css_extra %}
 <style>
-    /* ===== Checkout Animations ===== */
+    /* Checkout Animations */
     @keyframes slideIn {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
@@ -381,7 +381,7 @@
 </section>
 
 <script>
-    // ===== State =====
+    // State 
     const CHECKOUT_STATE = {
         reservaId: {{ reserva.id }},
         montoBase: parseFloat("{{ reserva.monto_total }}".replace(',', '.')),
@@ -404,7 +404,7 @@
         return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     }
 
-    // ===== CSRF =====
+    // CSRF
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -421,7 +421,7 @@
     }
     const csrftoken = getCookie('csrftoken');
 
-    // ===== Step 1: Payment Method =====
+    // Step 1: Payment Method 
     function seleccionarMetodo(btn) {
         // Deselect all
         document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
@@ -449,7 +449,7 @@
         actualizarPrecio();
     }
 
-    // ===== Step 2: Dynamic Fields =====
+    // Step 2: Dynamic Fields
     function renderizarCampos() {
         const container = document.getElementById('campos-dinamicos');
         const franquiciaSection = document.getElementById('franquicia-section');
@@ -458,11 +458,10 @@
         const esTarjeta = norm.includes('tarjeta');
         const esCredito = norm.includes('credito');
 
-        // Franchise chips
+        // Filter franchises by type
         if (esTarjeta) {
             franquiciaSection.style.display = '';
             cardPreview.style.display = '';
-            // Filter franchises by type
             const chips = document.querySelectorAll('.franchise-chip');
             chips.forEach(chip => {
                 const tipo = chip.dataset.franquiciaTipo;
@@ -543,7 +542,7 @@
         actualizarBotonPagar();
     }
 
-    // ===== Franchise Selection =====
+    // Franchise Selection
     function seleccionarFranquicia(chip) {
         document.querySelectorAll('.franchise-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
@@ -553,7 +552,7 @@
         actualizarBotonPagar();
     }
 
-    // ===== Card Number Formatting =====
+    // Card Number Formatting
     function formatearNumeroTarjeta(input) {
         let value = input.value.replace(/\D/g, '');
         if (value.length > 16) value = value.substring(0, 16);
@@ -561,7 +560,7 @@
         input.value = formatted;
     }
 
-    // ===== Card Preview Update =====
+    // Card Preview Update 
     function actualizarPreviewTarjeta() {
         const numero = document.getElementById('campo-numero-tarjeta')?.value || '';
         const titular = document.getElementById('campo-nombre-titular')?.value || '';
@@ -588,7 +587,7 @@
         }
     }
 
-    // ===== Price Calculation =====
+    // Price Calculation
     function actualizarPrecio() {
         const norm = normalizar(CHECKOUT_STATE.metodoNombre);
         const info = FACTORES[norm] || { factor: 1, label: '', class: '' };
@@ -614,7 +613,7 @@
         totalFinal.textContent = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
-    // ===== Pay Button State =====
+    // Pay Button State
     function actualizarBotonPagar() {
         const btn = document.getElementById('btn-pagar');
         const norm = normalizar(CHECKOUT_STATE.metodoNombre);
@@ -631,7 +630,7 @@
         btn.disabled = false;
     }
 
-    // ===== Process Payment =====
+    // Process Payment
     function procesarPago() {
         if (CHECKOUT_STATE.procesando) return;
 

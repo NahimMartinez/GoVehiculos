@@ -347,10 +347,8 @@ def crear_reserva_view(request):
     return redirect('checkout', reserva_id=reserva.id)
 
 
-# =====================================================================
-# VISTAS DE CHECKOUT
-# =====================================================================
 
+# VISTAS DE CHECKOUT
 def checkout_view(request, reserva_id):
     """GET: Renderiza la página de checkout con la info de la reserva y los métodos de pago."""
     if not request.user.is_authenticated:
@@ -531,10 +529,7 @@ def checkout_exitoso_view(request, reserva_id):
     return render(request, 'reservas/checkout_exitoso.html', contexto)
 
 
-# =====================================================================
 # VIEWSETS DE LA API REST
-# =====================================================================
-
 class ReservaViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
