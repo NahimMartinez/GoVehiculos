@@ -636,6 +636,27 @@ def checkout_exitoso_view(request, reserva_id):
     return render(request, 'reservas/checkout_exitoso.html', contexto)
 
 
+def detalle_reserva_view(request, reserva_id):
+    """GET: Muestra todos los detalles de una reserva."""
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca', 'cliente'),
+        id=reserva_id, cliente=request.user,
+    )
+
+    pago = Pago.objects.select_related('metodo_pago', 'franquicia', 'reembolso').filter(reserva=reserva).first()
+
+    contexto = {
+        'reserva': reserva,
+        'pago': pago,
+        'usuario': request.user,
+    }
+
+    return render(request, 'reservas/detalle_reserva.html', contexto)
+
+
 # =====================================================================
 # VIEWSETS DE LA API REST
 # =====================================================================

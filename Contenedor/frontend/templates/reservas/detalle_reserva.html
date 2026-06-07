@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Reserva | GoVehiculos{% endblock %}
+
+{% block contenido %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-headline font-bold">Detalle de la Reserva #{{ reserva.id }}</h1>
+            <p class="text-sm text-on-surface-variant mt-1">Realizada el {{ reserva.fecha_reserva|date:"d M Y, H:i" }}</p>
+        </div>
+        <a href="{% url 'mis_reservas' %}" class="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-sm font-medium rounded-lg transition-colors border border-outline-variant/50">
+            Volver
+        </a>
+    </div>
+
+    <!-- Banner de Estado -->
+    <div class="mb-8 p-4 rounded-xl border flex items-center gap-4
+        {% if reserva.estado_reserva.nombre|lower == 'confirmada' %}bg-green-50 border-green-200 text-green-800
+        {% elif reserva.estado_reserva.nombre|lower == 'pendiente' %}bg-amber-50 border-amber-200 text-amber-800
+        {% elif reserva.estado_reserva.nombre|lower == 'cancelada' %}bg-red-50 border-red-200 text-red-800
+        {% elif reserva.estado_reserva.nombre|lower == 'finalizada' %}bg-slate-50 border-slate-200 text-slate-800
+        {% else %}bg-surface border-outline-variant/50 text-on-surface{% endif %}">
+        
+        <div class="flex-shrink-0">
+            {% if reserva.estado_reserva.nombre|lower == 'confirmada' %}
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% elif reserva.estado_reserva.nombre|lower == 'pendiente' %}
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% elif reserva.estado_reserva.nombre|lower == 'cancelada' %}
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% else %}
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% endif %}
+        </div>
+        <div class="flex-grow">
+            <h2 class="text-lg font-semibold">Estado: {{ reserva.estado_reserva.nombre|default:'Desconocido' }}</h2>
+            <p class="text-sm opacity-90">
+                {% if reserva.estado_reserva.nombre|lower == 'confirmada' %}
+                    Esta reserva se encuentra abonada y lista.
+                {% elif reserva.estado_reserva.nombre|lower == 'pendiente' %}
+                    El pago está pendiente. Debes completarlo para confirmar tu reserva.
+                {% elif reserva.estado_reserva.nombre|lower == 'cancelada' %}
+                    Esta reserva ha sido cancelada.
+                {% elif reserva.estado_reserva.nombre|lower == 'finalizada' %}
+                    El periodo de la reserva ha finalizado.
+                {% endif %}
+            </p>
+        </div>
+        {% if reserva.estado_reserva.nombre|lower == 'pendiente' %}
+        <div class="flex-shrink-0">
+            <a href="{% url 'checkout' reserva.id %}" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+                Completar pago
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Detalles del Vehículo -->
+        <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-outline mb-4">Vehículo Reservado</h3>
+            
+            {% if reserva.vehiculo %}
+            <div class="flex items-start gap-4">
+                {% if reserva.vehiculo.imagen %}
+                <img src="{{ reserva.vehiculo.imagen.url }}" alt="{{ reserva.vehiculo.modelo }}" class="w-24 h-24 object-cover rounded-xl bg-surface-container-high">
+                {% else %}
+                <div class="w-24 h-24 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                {% endif %}
+                <div>
+                    <p class="font-bold text-lg text-on-surface">{{ reserva.vehiculo.modelo }}</p>
+                    <p class="text-sm text-on-surface-variant">{{ reserva.vehiculo.modelo.marca.nombre }}</p>
+                    <div class="mt-2 text-xs font-mono bg-surface-container px-2 py-1 rounded inline-block text-on-surface-variant">
+                        Matrícula: {{ reserva.vehiculo.matricula }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-on-surface-variant italic">El vehículo ha sido eliminado del sistema.</p>
+            {% endif %}
+        </div>
+
+        <!-- Fechas y Costos -->
+        <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-outline mb-4">Fechas y Montos</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Desde</span>
+                    <span class="font-medium">{{ reserva.fecha_inicio|date:"d M Y" }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Hasta</span>
+                    <span class="font-medium">{{ reserva.fecha_fin|date:"d M Y" }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-sm font-semibold">Total Reserva</span>
+                    <span class="font-bold text-lg text-primary">${{ reserva.monto_total }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Pago -->
+        <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-outline mb-4">Información de Pago</h3>
+            {% if pago %}
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Método</span>
+                    <span class="font-medium capitalize">{{ pago.metodo_pago.nombre }}</span>
+                </div>
+                {% if pago.franquicia %}
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Franquicia</span>
+                    <span class="font-medium">{{ pago.franquicia.nombre }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Monto Pagado</span>
+                    <span class="font-medium">${{ pago.monto }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Fecha de Pago</span>
+                    <span class="font-medium">{{ pago.fecha_pago|date:"d M Y, H:i" }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                    <span class="text-sm text-on-surface-variant">Comprobante</span>
+                    <span class="font-mono text-xs">{{ pago.comprobante_transaccion }}</span>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-sm text-on-surface-variant">Aún no se ha registrado ningún pago para esta reserva.</p>
+            {% endif %}
+        </div>
+
+        <!-- Información de Reembolso -->
+        {% if pago and pago.reembolso %}
+        <div class="bg-blue-50 rounded-2xl p-6 border border-blue-200 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-blue-800 mb-4 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                Reembolso Generado
+            </h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
+                    <span class="text-sm text-blue-700">Estado</span>
+                    <span class="font-medium text-blue-900">{{ pago.reembolso.get_estado_display }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
+                    <span class="text-sm text-blue-700">Monto Reembolsado</span>
+                    <span class="font-bold text-blue-900">${{ pago.reembolso.monto }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
+                    <span class="text-sm text-blue-700">Motivo</span>
+                    <span class="font-medium text-blue-900">{{ pago.reembolso.motivo }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-sm text-blue-700">Comprobante</span>
+                    <span class="font-mono text-xs text-blue-900">{{ pago.reembolso.comprobante_transaccion }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Acciones -->
+    {% if reserva.estado_reserva.nombre|lower == 'confirmada' or reserva.estado_reserva.nombre|lower == 'pendiente' %}
+    <div class="mt-8 pt-6 border-t border-outline-variant/30 flex justify-end">
+        <form method="POST" action="{% url 'cancelar_reserva' reserva.id %}" onsubmit="return confirm('¿Estás seguro que deseas cancelar esta reserva?');">
+            {% csrf_token %}
+            <button type="submit" class="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg border border-red-200 transition-colors">
+                Cancelar Reserva
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
