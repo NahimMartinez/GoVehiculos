@@ -32,6 +32,11 @@ from decimal import Decimal
 
 
 def obtener_reservas_usuario_view(request):
+    """
+    Vista que obtiene y muestra las reservas del usuario actual.
+    Separa las reservas en 'activas' (pendientes o confirmadas) y el 'historial' 
+    (las que ya finalizaron o fueron canceladas).
+    """
     _finalizar_reservas_vencidas(Reserva.objects.filter(cliente=request.user))
 
     reservas = Reserva.objects.select_related('estado_reserva', 'vehiculo', 'vehiculo__modelo', 'vehiculo__modelo__marca').filter(cliente=request.user).order_by('-fecha_reserva')
@@ -49,8 +54,13 @@ def obtener_reservas_usuario_view(request):
 def obtener_metodos_de_pago():
     return MetodoPago.objects.all()
 
-# Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
 def reservar_view(request):
+    """
+    Método GET para mostrar el formulario de reserva de vehículo. Esta vista renderiza una plantilla HTML 
+    que contiene el formulario para que los usuarios puedan ingresar los detalles de su reserva, como el 
+    vehículo que desean reservar, las fechas de inicio y fin, etc. La plantilla 'reservas/reserva.html' 
+    se encargará de mostrar el formulario y manejar la interacción del usuario para enviar la solicitud de reserva.
+    """
     usuario = request.user
     puede_reservar = request.user.is_authenticated and _usuario_valido(request.user)
     mensaje_reserva = None
@@ -80,12 +90,12 @@ def reservar_view(request):
 
     return render(request, 'reservas/reserva.html', contexto)
 
-# Método para verificar si un usuario es apto para reservar
 def _usuario_valido(user):
+    """Método para verificar si un usuario es apto para reservar."""
     return user.groups.filter(name__in=[ROLE_CLIENTE, ROLE_SOCIO]).exists()
 
-# Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo.
 def _obtener_estado(nombre_estado):
+    """Obtiene el estado de reserva por nombre y lo crea si aún no existe en el catálogo."""
     estado = EstadoReserva.objects.filter(nombre=nombre_estado).order_by('id').first()
     if estado is None:
         estado = EstadoReserva.objects.create(nombre=nombre_estado)
@@ -93,16 +103,28 @@ def _obtener_estado(nombre_estado):
 
 
 def _reserva_esta_finalizada(reserva):
+    """
+    Verifica si el estado actual de la reserva es 'Finalizada'.
+    Retorna True si es así, False en caso contrario.
+    """
     if not reserva.estado_reserva:
         return False
     return reserva.estado_reserva.nombre.strip().lower() == 'finalizada'
 
 
 def _reserva_ya_vencio(reserva):
+    """
+    Comprueba si la reserva ya superó su fecha de fin comparándola
+    con la fecha actual.
+    """
     return reserva.fecha_fin < timezone.localdate()
 
 
 def _finalizar_reservas_vencidas(reservas_qs):
+    """
+    Actualiza masivamente el estado a 'Finalizada' para aquellas reservas 
+    cuya fecha de fin ya pasó, excluyendo las que ya están canceladas o finalizadas.
+    """
     estado_finalizada = _obtener_estado('Finalizada')
     return reservas_qs.filter(fecha_fin__lt=timezone.localdate()).exclude(
         estado_reserva__nombre__iexact='Cancelada',
@@ -111,6 +133,11 @@ def _finalizar_reservas_vencidas(reservas_qs):
     ).update(estado_reserva=estado_finalizada)
 
 def cancelar_reserva_view(request, reserva_id):
+    """
+    Vista POST para que un usuario pueda cancelar una reserva existente.
+    Realiza validaciones para evitar la cancelación de reservas que ya vencieron
+    o ya se encuentran finalizadas.
+    """
     if request.method == 'POST':
         #  Recuperamos la reserva asegurándonos de que pertenezca al usuario logueado 
         reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
@@ -136,14 +163,14 @@ def cancelar_reserva_view(request, reserva_id):
             
     return redirect('mis_reservas')
 
-# Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado).
 def _reserva_esta_cancelada(reserva):
+    """Devuelve True si la reserva tiene estado Cancelada (manejando también el caso sin estado)."""
     if not reserva.estado_reserva:
         return False
     return reserva.estado_reserva.nombre.strip().lower() == 'cancelada'
 
-# Convierte una instancia de Reserva en un diccionario serializable para respuestas JSON.
 def _reserva_a_dict(reserva):
+    """Convierte una instancia de Reserva en un diccionario serializable para respuestas JSON."""
     return {
         'id': reserva.id,
         'vehiculo_id': reserva.vehiculo_id,
@@ -158,6 +185,11 @@ def _reserva_a_dict(reserva):
 
 
 def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
+    """
+    Intenta crear una reserva utilizando una transacción atómica y bloqueo de base de datos
+    para evitar conflictos de concurrencia y sobre-reservas para el mismo vehículo.
+    Devuelve una tupla (reserva, mensaje_error).
+    """
     if vehiculo.duenio_id == usuario.id:
         return None, 'No puedes reservar un vehiculo propio.'
 
@@ -201,8 +233,13 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
 
     return reserva, None
 
-# El método _payload_reserva se encarga de extraer los datos de la solicitud, ya sea desde el cuerpo JSON o desde los datos POST tradicionales. Esto permite que la vista crear_reserva_view pueda manejar solicitudes tanto con contenido JSON (por ejemplo, desde una API) como con datos de formulario estándar (por ejemplo, desde un formulario HTML), lo que hace que la vista sea más flexible y compatible con diferentes tipos de clientes.
 def _payload_reserva(request):
+    """
+    Se encarga de extraer los datos de la solicitud, ya sea desde el cuerpo JSON o desde los datos POST tradicionales. 
+    Esto permite que la vista crear_reserva_view pueda manejar solicitudes tanto con contenido JSON (por ejemplo, desde una API) 
+    como con datos de formulario estándar (por ejemplo, desde un formulario HTML), lo que hace que la vista sea más flexible 
+    y compatible con diferentes tipos de clientes.
+    """
     if request.content_type and 'application/json' in request.content_type:
         try:
             body = request.body.decode('utf-8') if request.body else '{}'
@@ -214,10 +251,15 @@ def _payload_reserva(request):
 
 
 def _solicitud_prefiere_json(request):
+    """Verifica si la solicitud entrante indica preferencia por una respuesta JSON."""
     return bool(request.content_type and 'application/json' in request.content_type)
 
 
 def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formulario=None, reserva=None, mensaje_reserva=None, tipo_reserva=None, errores=None):
+    """
+    Construye el diccionario de contexto base para renderizar la plantilla HTML
+    de reservas, precargando vehículos disponibles y estado del formulario.
+    """
     vehiculos_disponibles = Vehiculo.objects.select_related('modelo', 'modelo__marca').filter(
         activo=True,
         esta_aprobado=True,
@@ -242,6 +284,10 @@ def _contexto_reserva_base(request, *, vehiculo_seleccionado=None, datos_formula
 
 
 def _respuesta_reserva_html(request, *, mensaje_reserva, tipo_reserva='error', reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None, status_code=200):
+    """
+    Helper para retornar una respuesta renderizada en HTML cuando ocurre un éxito o error 
+    durante el proceso de reserva a través de interfaz web.
+    """
     contexto = _contexto_reserva_base(
         request,
         vehiculo_seleccionado=vehiculo_seleccionado,
@@ -255,6 +301,10 @@ def _respuesta_reserva_html(request, *, mensaje_reserva, tipo_reserva='error', r
 
 
 def _respuesta_reserva(request, *, ok, mensaje, status_code, reserva=None, errores=None, datos_formulario=None, vehiculo_seleccionado=None):
+    """
+    Actúa como despachador de respuestas (Dispatcher). Retorna una respuesta JSON o HTML 
+    dependiendo de lo que la solicitud prefiera (API vs Navegador).
+    """
     if _solicitud_prefiere_json(request):
         payload = {'ok': ok, 'mensaje': mensaje}
         if reserva is not None:
@@ -277,6 +327,11 @@ def _respuesta_reserva(request, *, ok, mensaje, status_code, reserva=None, error
 
 @require_POST
 def crear_reserva_view(request):
+    """
+    Vista principal para procesar la creación de una nueva reserva.
+    Recibe los datos por POST (HTML form) o JSON, los valida con ReservarVehiculoForm 
+    y procede a crear la reserva si no hay conflictos. Redirige al checkout en caso de éxito.
+    """
     if not request.user.is_authenticated:
         return _respuesta_reserva(
             request,
@@ -537,9 +592,14 @@ class ReservaViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    """
+    ViewSet para gestionar las reservas a través de la API REST.
+    Permite listar, obtener, crear y cancelar (destroy) reservas del usuario autenticado.
+    """
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
+        """Devuelve el serializador correspondiente según la acción (crear vs listar/obtener)."""
         if self.action == 'create':
             return ReservaCreateSerializer
         return ReservaSerializer
@@ -550,6 +610,10 @@ class ReservaViewSet(
         ).order_by('-fecha_reserva')
 
     def create(self, request, *args, **kwargs):
+        """
+        Crea una nueva reserva desde la API.
+        Valida que el usuario tenga el rol correcto y que no haya conflictos de fechas.
+        """
         if not _usuario_valido(request.user):
             return Response(
                 {'ok': False, 'mensaje': 'Solo los usuarios con rol Cliente/Socio pueden reservar.'},
@@ -589,6 +653,10 @@ class ReservaViewSet(
         )
 
     def destroy(self, request, *args, **kwargs):
+        """
+        Cancela una reserva existente desde la API.
+        Verifica que la reserva pertenezca al usuario y que se cancele con al menos un día de anticipación.
+        """
         reserva = self.get_object()
         if reserva.cliente_id != request.user.id:
             return Response(
@@ -622,18 +690,21 @@ class ReservaViewSet(
 
 
 class EstadoReservaViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint para listar los posibles estados de una reserva (solo lectura)."""
     queryset = EstadoReserva.objects.all().order_by('id')
     serializer_class = EstadoReservaSerializer
     permission_classes = [IsAuthenticated]
 
 
 class MetodoPagoViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint para obtener los métodos de pago disponibles (solo lectura)."""
     queryset = MetodoPago.objects.all().order_by('id')
     serializer_class = MetodoPagoSerializer
     permission_classes = [IsAuthenticated]
 
 
 class FranquiciaTarjetaViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint para obtener las franquicias de tarjeta de crédito soportadas (solo lectura)."""
     queryset = FranquiciaTarjeta.objects.all().order_by('nombre')
     serializer_class = FranquiciaTarjetaSerializer
     permission_classes = [IsAuthenticated]
@@ -645,6 +716,10 @@ class PagoViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
+    """
+    ViewSet para manejar pagos de reservas a través de la API REST.
+    Soporta procesar un pago (create), listar y ver el detalle de los pagos del usuario.
+    """
     serializer_class = PagoSerializer
     permission_classes = [IsAuthenticated]
 
