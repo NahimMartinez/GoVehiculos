@@ -22,6 +22,13 @@ class BuscarVehiculoTestCase(TestCase):
         Creamos las dependencias de claves foráneas y dos vehículos de prueba:
         uno que cumple todas las condiciones y otro que está inactivo.
         """
+        self.duenio = Usuario.objects.create_user(
+            username='duenio_busqueda',
+            email='duenio_busqueda@test.com',
+            password='123',
+            dni='11111111'
+        )
+
         # 1. Creamos las entidades relacionadas necesarias
         self.marca = Marca.objects.create(nombre="Toyota")
         self.modelo = Modelo.objects.create(nombre="Corolla", marca=self.marca)
@@ -31,6 +38,7 @@ class BuscarVehiculoTestCase(TestCase):
             matricula="AF 123 XZ",  
             precio_x_dia=15000.00,
             modelo=self.modelo,
+            duenio=self.duenio,
             activo=True,
             esta_aprobado=True
         )
@@ -40,6 +48,7 @@ class BuscarVehiculoTestCase(TestCase):
             matricula="AB 987 YZ",
             precio_x_dia=10000.00,
             modelo=self.modelo,
+            duenio=self.duenio,
             activo=False,
             esta_aprobado=True
         )
@@ -99,6 +108,13 @@ class ValidarDatosTestCase(TestCase):
         Contexto (Arrange): Preparamos las dependencias (Claves Foráneas) que 
         el formulario necesita para poder renderizarse y validarse correctamente.
         """
+        self.duenio = Usuario.objects.create_user(
+            username='duenio_form',
+            email='duenio_form@test.com',
+            password='123',
+            dni='11112222'
+        )
+
         self.marca = Marca.objects.create(nombre="Ford")
         self.modelo = Modelo.objects.create(nombre="Fiesta", marca=self.marca)
         self.tipo = TipoVehiculo.objects.create(nombre="Auto")
@@ -120,6 +136,7 @@ class ValidarDatosTestCase(TestCase):
             matricula="AF 123 XZ",
             precio_x_dia=10000.00,
             modelo=self.modelo,
+            duenio=self.duenio,
             tipo_vehiculo=self.tipo,
             estado_vehiculo=self.estado,
             activo=True,
@@ -243,6 +260,19 @@ class AgregarVehiculoTestCase(TestCase):
         # assertRaises verifica que la base de datos lance la excepción IntegrityError
         with self.assertRaises(IntegrityError):
             agregar_vehiculo(vehiculo_duplicado)
+
+    # CASO 3: Dato Faltante / Integridad (Dueño Nulo)
+    def test_agregar_vehiculo_duenio_none_lanza_error(self):
+        """Verifica que la restricción NOT NULL/Foreign Key bloquee el guardado si no hay dueño."""
+        vehiculo_sin_duenio = Vehiculo(
+            matricula="BB 222 BB", precio_x_dia=15000.0, modelo=self.modelo,
+            tipo_vehiculo=self.tipo, estado_vehiculo=self.estado, 
+            duenio=None, 
+            activo=True
+        )
+        
+        with self.assertRaises(IntegrityError):
+            agregar_vehiculo(vehiculo_sin_duenio)
 
     # CASO 4: Dato Faltante (NOT NULL)
     def test_agregar_vehiculo_dato_faltante_lanza_error(self):

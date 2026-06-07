@@ -40,7 +40,7 @@ class Vehiculo(models.Model):
     esta_aprobado = models.BooleanField(default=True)
 
     # Relaciones
-    duenio = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
+    duenio = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
     estado_vehiculo = models.ForeignKey(EstadoVehiculo, on_delete=models.SET_NULL, null=True)
     modelo = models.ForeignKey(Modelo, on_delete=models.SET_NULL, null=True)
