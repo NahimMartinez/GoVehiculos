@@ -200,6 +200,23 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 			'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
 		)
 		self.assertEqual(Reserva.objects.count(), 1)
+	
+	def test_crear_reserva_en_transaccion_rechaza_vehiculo_no_aprobado(self):
+		hoy = timezone.localdate()
+		# Forzamos que el vehículo no esté aprobado por el administrador
+		self.vehiculo.esta_aprobado = False
+		self.vehiculo.save(update_fields=['esta_aprobado'])
+
+		reserva, mensaje_error = _crear_reserva_en_transaccion(
+			usuario=self.cliente,
+			vehiculo=self.vehiculo,
+			fecha_inicio=hoy + timedelta(days=2),
+			fecha_fin=hoy + timedelta(days=5),
+		)
+
+		self.assertIsNone(reserva)
+		self.assertEqual(mensaje_error, 'El vehiculo ya no esta disponible para reservar.')
+		self.assertEqual(Reserva.objects.count(), 0)
 
 
 # =====================================================================
