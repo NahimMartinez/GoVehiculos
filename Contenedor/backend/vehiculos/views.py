@@ -7,6 +7,8 @@ from django.utils import timezone
 from reservas.models import Reserva
 from .forms import VehiculoForm
 
+from reservas.db_procedures import procedure_obtener_vehiculos_destacados
+
 # Funciones auxiliares
 def buscar_vehiculo(matricula):
     """Busca vehículos activos por matrícula (case-insensitive).
@@ -194,21 +196,36 @@ def procesar_formulario_vehiculo(request, vehiculo_a_editar=None):
     # Retornar formulario y flag indicando guardado exitoso
     return form, True
 
-# Create your views here.
+
 def index(request):
     """Vista de inicio que muestra los 6 vehículos más populares.
     
     Obtiene los vehículos activos ordenados por cantidad de reservas (descendente)
     y retorna los 6 primeros para mostrar como destacados en la página de inicio.
-    
+    Utiliza un procedimiento de consulta SQL
+
     """
-    # Obtener vehículos activos y anotar cantidad de reservas de cada uno
-    vehiculos = Vehiculo.objects.filter(activo=True).annotate(num_reservas=Count('reserva')).order_by('-num_reservas')[:6]
-    # Limitar a los 6 más reservados para mostrar como destacados
+    # Invocamos el procedimiento
+    filas_db = procedure_obtener_vehiculos_destacados()
+
+    # Mapeamos las tuplas a un formato que funcione con la plantilla HTML
+    vehiculos_destacados = []
+    for fila in filas_db:
+        vehiculos_destacados.append({
+            'id': fila[0],
+            # Creamos un mini diccionario para que vehiculo.imagen.url funcione
+            'imagen': {'url': f'/media/{fila[1]}'} if fila[1] else None,
+            'modelo': fila[2],
+            'estado_vehiculo': fila[3],
+            'num_reservas': fila[4],
+            'precio_x_dia': fila[5],
+            'tipo_vehiculo': fila[6],
+            'matricula': fila[7]
+        })
 
     # Preparar diccionario con datos para la plantilla
     contexto = {
-        'vehiculos_destacados': vehiculos
+        'vehiculos_destacados': vehiculos_destacados
     }
 
     # Renderizar template de inicio con los vehículos destacados

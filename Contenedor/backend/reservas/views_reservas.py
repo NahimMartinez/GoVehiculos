@@ -321,14 +321,14 @@ def cancelar_reserva_view(request, reserva_id):
         if _reserva_ya_vencio(reserva):
             if not _reserva_tiene_estado(reserva, 'Finalizada'):
                 estado_finalizada = _obtener_estado('Finalizada')
-                # CAMBIO: Usamos el procedimiento SQL directo para actualizar a 'Finalizada'
+                # Usamos el procedimiento SQL directo para actualizar a 'Finalizada'
                 procedure_actualizar_estado_reserva(reserva.id, estado_finalizada.id)
             messages.error(request, 'Esta reserva ya finalizó, por lo que no se puede cancelar.')
             return redirect('mis_reservas')
 
         if _reserva_tiene_estado(reserva, 'Pendiente'):
             estado_cancelada = _obtener_estado('Cancelada')
-            # CAMBIO: Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
+            # Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
             procedure_actualizar_estado_reserva(reserva.id, estado_cancelada.id)
             messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
             return redirect('mis_reservas')
@@ -348,7 +348,7 @@ def cancelar_reserva_view(request, reserva_id):
                 return redirect('mis_reservas')
 
             estado_cancelada = _obtener_estado('Cancelada')
-            #Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
+            # Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
             procedure_actualizar_estado_reserva(reserva.id, estado_cancelada.id)
             
             messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
