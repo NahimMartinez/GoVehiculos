@@ -55,6 +55,13 @@ class ReservaQuerySet(models.QuerySet):
             fecha_fin__gte=fecha_inicio,
         )
 
+    def con_solapamiento_cliente(self, cliente, fecha_inicio, fecha_fin):
+        return self.en_estados_bloqueantes().filter(
+            cliente=cliente,
+            fecha_inicio__lte=fecha_fin,
+            fecha_fin__gte=fecha_inicio,
+        )
+
 class Reserva(models.Model):
     monto_total = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_inicio = models.DateField()

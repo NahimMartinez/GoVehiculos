@@ -175,8 +175,29 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
                 'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
             )
 
-        estado_pendiente = _obtener_estado('Pendiente')
+        conflicto_cliente = Reserva.objects.con_solapamiento_cliente(
+            cliente=usuario,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+        ).exists()
+
+        if conflicto_cliente:
+            return (
+                None,
+                'Ya tienes una reserva activa en este rango de fechas. Solo puedes reservar un vehiculo a la vez.',
+            )
+
         cantidad_dias = (fecha_fin - fecha_inicio).days
+        reservas_activas = Reserva.objects.en_estados_bloqueantes().filter(cliente=usuario)
+        dias_acumulados = sum((res.fecha_fin - res.fecha_inicio).days for res in reservas_activas)
+
+        if dias_acumulados + cantidad_dias > 30:
+            return (
+                None,
+                'No puedes exceder el límite máximo de 30 días totales de reserva.',
+            )
+
+        estado_pendiente = _obtener_estado('Pendiente')
         monto_base = cantidad_dias * vehiculo_bloqueado.precio_x_dia
 
         reserva = Reserva.objects.create(
