@@ -62,7 +62,6 @@ class EstrategiaPago(ABC):
 
 
 # 2. Estrategias Concretas
-
 class EstrategiaTarjetaCredito(EstrategiaPago):
     RECARGO = Decimal('0.10')  # 10% de recargo
 

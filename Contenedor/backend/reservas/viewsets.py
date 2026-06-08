@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from .forms import ReservarVehiculoForm
 from .views_reservas import HORAS_ANTELACION_CANCELACION, _crear_reserva_en_transaccion, _obtener_estado, _reserva_tiene_estado, _usuario_valido
-from .views_pago import _crear_reembolso_reserva, _procesar_pago_reserva
+from .views_pago import _procesar_pago_reserva
 from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 from .serializer import (
     EstadoReservaSerializer,
@@ -108,17 +108,10 @@ class ReservaViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            with transaction.atomic():
-                reserva.estado_reserva = _obtener_estado('Cancelada')
-                reserva.save(update_fields=['estado_reserva'])
-                reembolso = _crear_reembolso_reserva(reserva)
+            reserva.estado_reserva = _obtener_estado('Cancelada')
+            reserva.save(update_fields=['estado_reserva'])
 
             data = {'ok': True, 'mensaje': 'Reserva cancelada correctamente.', 'reserva': ReservaSerializer(reserva).data}
-            if reembolso:
-                data['reembolso'] = {
-                    'monto': str(reembolso.monto),
-                    'comprobante': reembolso.comprobante_transaccion,
-                }
             return Response(data, status=status.HTTP_200_OK)
 
         reserva.estado_reserva = _obtener_estado('Cancelada')

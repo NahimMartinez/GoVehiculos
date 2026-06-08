@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 
 from .estrategias import ContextoPago, obtener_estrategia_pago
-from .models import FranquiciaTarjeta, MetodoPago, Pago, Reembolso, Reserva
+from .models import FranquiciaTarjeta, MetodoPago, Pago, Reserva
 from .views_reservas import _obtener_estado, _reserva_tiene_estado
 
 
@@ -67,36 +67,7 @@ def _procesar_pago_reserva(reserva, metodo_pago_nombre, datos_pago, franquicia_i
     return pago, monto_final, resultado_pago, None
 
 
-def _crear_reembolso_reserva(reserva, motivo='cancelacion_usuario'):
-    """Crea un reembolso simulado para una reserva confirmada que se cancela."""
-    try:
-        pago = reserva.pago
-    except Pago.DoesNotExist:
-        return None
 
-    if pago is None:
-        return None
-
-    if hasattr(pago, 'reembolso'):
-        return pago.reembolso
-
-    monto_reembolso = (pago.monto * Reembolso.PORCENTAJE_REEMBOLSO).quantize(Decimal('0.01'))
-
-    from .estrategias import EstrategiaPago
-
-    comprobante = EstrategiaPago._generar_comprobante(None, 'RMB')
-
-    reembolso = Reembolso.objects.create(
-        pago=pago,
-        monto=monto_reembolso,
-        estado='procesado',
-        motivo=motivo,
-        descripcion=f'Reembolso del 75% del pago original (${pago.monto}). Retencion del 25% por gestion.',
-        comprobante_transaccion=comprobante,
-        fecha_procesamiento=timezone.now(),
-    )
-
-    return reembolso
 
 
 # =====================================================================

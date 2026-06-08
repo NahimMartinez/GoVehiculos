@@ -136,33 +136,7 @@
             {% endif %}
         </div>
 
-        <!-- Información de Reembolso -->
-        {% if pago and pago.reembolso %}
-        <div class="bg-blue-50 rounded-2xl p-6 border border-blue-200 shadow-sm">
-            <h3 class="text-sm font-bold uppercase tracking-wide text-blue-800 mb-4 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                Reembolso Generado
-            </h3>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
-                    <span class="text-sm text-blue-700">Estado</span>
-                    <span class="font-medium text-blue-900">{{ pago.reembolso.get_estado_display }}</span>
-                </div>
-                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
-                    <span class="text-sm text-blue-700">Monto Reembolsado</span>
-                    <span class="font-bold text-blue-900">${{ pago.reembolso.monto }}</span>
-                </div>
-                <div class="flex justify-between items-center py-2 border-b border-blue-200/50">
-                    <span class="text-sm text-blue-700">Motivo</span>
-                    <span class="font-medium text-blue-900">{{ pago.reembolso.motivo }}</span>
-                </div>
-                <div class="flex justify-between items-center py-2">
-                    <span class="text-sm text-blue-700">Comprobante</span>
-                    <span class="font-mono text-xs text-blue-900">{{ pago.reembolso.comprobante_transaccion }}</span>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+
     </div>
 
     <!-- Acciones -->

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reembolso, Reserva
+from .models import EstadoReserva, FranquiciaTarjeta, MetodoPago, Pago, Reserva
 
 
 class EstadoReservaSerializer(serializers.ModelSerializer):
@@ -70,24 +70,3 @@ class PagoSerializer(serializers.ModelSerializer):
             'reserva',
         )
         read_only_fields = ('fecha_pago',)
-
-
-class ReembolsoSerializer(serializers.ModelSerializer):
-    pago_comprobante = serializers.CharField(source='pago.comprobante_transaccion', read_only=True)
-
-    class Meta:
-        model = Reembolso
-        fields = (
-            'id',
-            'pago',
-            'pago_comprobante',
-            'monto',
-            'estado',
-            'motivo',
-            'descripcion',
-            'comprobante_transaccion',
-            'fecha_solicitud',
-            'fecha_procesamiento',
-        )
-        read_only_fields = ('fecha_solicitud', 'fecha_procesamiento')
-

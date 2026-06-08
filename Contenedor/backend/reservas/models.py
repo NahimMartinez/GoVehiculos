@@ -95,35 +95,3 @@ class Pago(models.Model):
     def __str__(self):
         return f'Pago #{self.id}'
 
-
-class Reembolso(models.Model):
-    """
-    Registra los reembolsos asociados a pagos de reservas canceladas.
-    Cada pago puede tener a lo sumo un reembolso. El monto del reembolso
-    corresponde al 75% del pago original (se retiene un 25% por gestión).
-    """
-    ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('procesado', 'Procesado'),
-        ('rechazado', 'Rechazado'),
-    ]
-    MOTIVO_CHOICES = [
-        ('cancelacion_usuario', 'Cancelación por el usuario'),
-        ('cancelacion_sistema', 'Cancelación por el sistema'),
-        ('otro', 'Otro'),
-    ]
-
-    # Porcentaje del monto original que se reembolsa (75%).
-    PORCENTAJE_REEMBOLSO = Decimal('0.75')
-
-    pago = models.OneToOneField(Pago, on_delete=models.CASCADE, related_name='reembolso')
-    monto = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='pendiente')
-    motivo = models.CharField(max_length=30, choices=MOTIVO_CHOICES)
-    descripcion = models.TextField(blank=True, default='')
-    comprobante_transaccion = models.CharField(max_length=100, blank=True, default='')
-    fecha_solicitud = models.DateTimeField(auto_now_add=True)
-    fecha_procesamiento = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f'Reembolso #{self.id}'

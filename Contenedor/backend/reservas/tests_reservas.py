@@ -224,6 +224,13 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 # =====================================================================
 class ValidarDatosReservaTestCase(TestCase):
 	def setUp(self):
+		self.User = get_user_model()
+		self.propietario = self.User.objects.create_user(
+			username='propietario_val',
+			email='propietario_val@example.com',
+			dni='18181819',
+			password='password123',
+		)
 		self.marca = Marca.objects.create(nombre='Ford')
 		self.modelo = Modelo.objects.create(nombre='Fiesta', marca=self.marca)
 		self.tipo = TipoVehiculo.objects.create(nombre='Auto')
@@ -235,6 +242,7 @@ class ValidarDatosReservaTestCase(TestCase):
 			modelo=self.modelo,
 			tipo_vehiculo=self.tipo,
 			estado_vehiculo=self.estado,
+			duenio=self.propietario,
 			activo=True,
 			esta_aprobado=True,
 		)
@@ -245,6 +253,7 @@ class ValidarDatosReservaTestCase(TestCase):
 			modelo=self.modelo,
 			tipo_vehiculo=self.tipo,
 			estado_vehiculo=self.estado,
+			duenio=self.propietario,
 			activo=False,
 			esta_aprobado=True,
 		)

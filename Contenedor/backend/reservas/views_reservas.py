@@ -343,22 +343,10 @@ def cancelar_reserva_view(request, reserva_id):
                 )
                 return redirect('mis_reservas')
 
-            with transaction.atomic():
-                reserva.estado_reserva = _obtener_estado('Cancelada')
-                reserva.save(update_fields=['estado_reserva'])
-                from .views_pago import _crear_reembolso_reserva
-
-                reembolso = _crear_reembolso_reserva(reserva)
-
-            if reembolso:
-                messages.success(
-                    request,
-                    f'La reserva de {reserva.vehiculo.modelo} fue cancelada. '
-                    f'Se proceso un reembolso de ${reembolso.monto} (75% del pago original). '
-                    f'Comprobante: {reembolso.comprobante_transaccion}'
-                )
-            else:
-                messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
+            reserva.estado_reserva = _obtener_estado('Cancelada')
+            reserva.save(update_fields=['estado_reserva'])
+            
+            messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
             return redirect('mis_reservas')
 
         messages.error(request, 'Esta reserva no se puede cancelar en su estado actual.')
