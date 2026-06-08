@@ -16,6 +16,8 @@ from vehiculos.models import Vehiculo
 from .forms import ReservarVehiculoForm
 from .models import EstadoReserva, Pago, Reserva
 
+from .db_procedures import procedure_actualizar_estado_reserva
+
 # =====================================================================
 # CONSTANTES
 # =====================================================================
@@ -175,28 +177,7 @@ def _crear_reserva_en_transaccion(usuario, vehiculo, fecha_inicio, fecha_fin):
                 'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
             )
 
-        conflicto_cliente = Reserva.objects.con_solapamiento_cliente(
-            cliente=usuario,
-            fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin,
-        ).exists()
-
-        if conflicto_cliente:
-            return (
-                None,
-                'Ya tienes una reserva activa en este rango de fechas. Solo puedes reservar un vehiculo a la vez.',
-            )
-
         cantidad_dias = (fecha_fin - fecha_inicio).days
-        reservas_activas = Reserva.objects.en_estados_bloqueantes().filter(cliente=usuario)
-        dias_acumulados = sum((res.fecha_fin - res.fecha_inicio).days for res in reservas_activas)
-
-        if dias_acumulados + cantidad_dias > 30:
-            return (
-                None,
-                'No puedes exceder el límite máximo de 30 días totales de reserva.',
-            )
-
         estado_pendiente = _obtener_estado('Pendiente')
         monto_base = cantidad_dias * vehiculo_bloqueado.precio_x_dia
 
@@ -339,14 +320,16 @@ def cancelar_reserva_view(request, reserva_id):
 
         if _reserva_ya_vencio(reserva):
             if not _reserva_tiene_estado(reserva, 'Finalizada'):
-                reserva.estado_reserva = _obtener_estado('Finalizada')
-                reserva.save(update_fields=['estado_reserva'])
+                estado_finalizada = _obtener_estado('Finalizada')
+                # CAMBIO: Usamos el procedimiento SQL directo para actualizar a 'Finalizada'
+                procedure_actualizar_estado_reserva(reserva.id, estado_finalizada.id)
             messages.error(request, 'Esta reserva ya finalizó, por lo que no se puede cancelar.')
             return redirect('mis_reservas')
 
         if _reserva_tiene_estado(reserva, 'Pendiente'):
-            reserva.estado_reserva = _obtener_estado('Cancelada')
-            reserva.save(update_fields=['estado_reserva'])
+            estado_cancelada = _obtener_estado('Cancelada')
+            # CAMBIO: Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
+            procedure_actualizar_estado_reserva(reserva.id, estado_cancelada.id)
             messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
             return redirect('mis_reservas')
 
@@ -364,8 +347,9 @@ def cancelar_reserva_view(request, reserva_id):
                 )
                 return redirect('mis_reservas')
 
-            reserva.estado_reserva = _obtener_estado('Cancelada')
-            reserva.save(update_fields=['estado_reserva'])
+            estado_cancelada = _obtener_estado('Cancelada')
+            #Usamos el procedimiento SQL directo para actualizar a 'Cancelada'
+            procedure_actualizar_estado_reserva(reserva.id, estado_cancelada.id)
             
             messages.success(request, f'La reserva de {reserva.vehiculo.modelo} fue cancelada correctamente.')
             return redirect('mis_reservas')
