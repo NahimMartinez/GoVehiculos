@@ -208,7 +208,7 @@ def detalle_reserva_view(request, reserva_id):
         id=reserva_id, cliente=request.user,
     )
 
-    pago = Pago.objects.select_related('metodo_pago', 'franquicia', 'reembolso').filter(reserva=reserva).first()
+    pago = Pago.objects.select_related('metodo_pago', 'franquicia').filter(reserva=reserva).first()
 
     contexto = {
         'reserva': reserva,
