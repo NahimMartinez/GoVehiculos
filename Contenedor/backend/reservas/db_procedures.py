@@ -27,7 +27,7 @@ def procedure_obtener_vehiculos_destacados():
                 v.matricula
             FROM vehiculos_vehiculo v
             INNER JOIN vehiculos_modelo m ON v.modelo_id = m.id
-            INNER JOIN vehiculos_marca ma ON m.marca_id = ma.id -- <-- NUEVO JOIN PARA LA MARCA
+            INNER JOIN vehiculos_marca ma ON m.marca_id = ma.id
             INNER JOIN vehiculos_estadovehiculo e ON v.estado_vehiculo_id = e.id
             INNER JOIN vehiculos_tipovehiculo t ON v.tipo_vehiculo_id = t.id
             LEFT JOIN reservas_reserva r ON r.vehiculo_id = v.id
