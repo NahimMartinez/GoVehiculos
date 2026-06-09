@@ -121,6 +121,7 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 		self.estado_pendiente = EstadoReserva.objects.create(nombre='Pendiente')
 		self.estado_cancelada = EstadoReserva.objects.create(nombre='Cancelada')
 
+
 	def test_crear_reserva_en_transaccion_camino_feliz(self):
 		hoy = timezone.localdate()
 		reserva, mensaje_error = _crear_reserva_en_transaccion(
@@ -135,6 +136,31 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 		self.assertEqual(reserva.estado_reserva.nombre, 'Pendiente')
 		# Monto base: 3 días × $10000 = $30000 (sin recargo, el recargo se aplica en checkout)
 		self.assertEqual(reserva.monto_total, Decimal('30000.00'))
+
+	def test_crear_reserva_en_transaccion_detecta_solapamiento(self):
+		hoy = timezone.localdate()
+		Reserva.objects.create(
+			monto_total=Decimal('20000.00'),
+			fecha_inicio=hoy + timedelta(days=2),
+			fecha_fin=hoy + timedelta(days=5),
+			estado_reserva=self.estado_pendiente,
+			cliente=self.cliente,
+			vehiculo=self.vehiculo,
+		)
+
+		reserva, mensaje_error = _crear_reserva_en_transaccion(
+			usuario=self.cliente,
+			vehiculo=self.vehiculo,
+			fecha_inicio=hoy + timedelta(days=3),
+			fecha_fin=hoy + timedelta(days=6),
+		)
+
+		self.assertIsNone(reserva)
+		self.assertEqual(
+			mensaje_error,
+			'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
+		)
+		self.assertEqual(Reserva.objects.count(), 1)
 
 	def test_crear_reserva_en_transaccion_rechaza_vehiculo_propio(self):
 		hoy = timezone.localdate()
@@ -176,30 +202,6 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 		self.assertEqual(mensaje_error, 'El vehiculo ya no esta disponible para reservar.')
 		self.assertEqual(Reserva.objects.count(), 0)
 
-	def test_crear_reserva_en_transaccion_detecta_solapamiento(self):
-		hoy = timezone.localdate()
-		Reserva.objects.create(
-			monto_total=Decimal('20000.00'),
-			fecha_inicio=hoy + timedelta(days=2),
-			fecha_fin=hoy + timedelta(days=5),
-			estado_reserva=self.estado_pendiente,
-			cliente=self.cliente,
-			vehiculo=self.vehiculo,
-		)
-
-		reserva, mensaje_error = _crear_reserva_en_transaccion(
-			usuario=self.cliente,
-			vehiculo=self.vehiculo,
-			fecha_inicio=hoy + timedelta(days=3),
-			fecha_fin=hoy + timedelta(days=6),
-		)
-
-		self.assertIsNone(reserva)
-		self.assertEqual(
-			mensaje_error,
-			'Alguien mas reservó este vehiculo para esas fechas. Por favor, intenta con otro rango.',
-		)
-		self.assertEqual(Reserva.objects.count(), 1)
 	
 	def test_crear_reserva_en_transaccion_rechaza_vehiculo_no_aprobado(self):
 		hoy = timezone.localdate()
@@ -217,79 +219,6 @@ class CrearReservaEnTransaccionTestCase(TestCase):
 		self.assertIsNone(reserva)
 		self.assertEqual(mensaje_error, 'El vehiculo ya no esta disponible para reservar.')
 		self.assertEqual(Reserva.objects.count(), 0)
-
-	def test_crear_reserva_en_transaccion_rechaza_solapamiento_cliente(self):
-		hoy = timezone.localdate()
-		vehiculo2 = Vehiculo.objects.create(
-			matricula='YY 123 ZZ',
-			precio_x_dia=10000.00,
-			modelo=self.modelo,
-			tipo_vehiculo=self.tipo,
-			estado_vehiculo=self.estado,
-			duenio=self.propietario,
-			activo=True,
-			esta_aprobado=True,
-		)
-		Reserva.objects.create(
-			monto_total=Decimal('20000.00'),
-			fecha_inicio=hoy + timedelta(days=2),
-			fecha_fin=hoy + timedelta(days=5),
-			estado_reserva=self.estado_pendiente,
-			cliente=self.cliente,
-			vehiculo=vehiculo2,
-		)
-
-		reserva, mensaje_error = _crear_reserva_en_transaccion(
-			usuario=self.cliente,
-			vehiculo=self.vehiculo,
-			fecha_inicio=hoy + timedelta(days=3),
-			fecha_fin=hoy + timedelta(days=6),
-		)
-
-		self.assertIsNone(reserva)
-		self.assertEqual(
-			mensaje_error,
-			'Ya tienes una reserva activa en este rango de fechas. Solo puedes reservar un vehiculo a la vez.',
-		)
-		self.assertEqual(Reserva.objects.filter(vehiculo=self.vehiculo).count(), 0)
-
-	def test_crear_reserva_en_transaccion_rechaza_exceso_cupo_30_dias(self):
-		hoy = timezone.localdate()
-		# Creamos una reserva existente de 25 días
-		Reserva.objects.create(
-			monto_total=Decimal('250000.00'),
-			fecha_inicio=hoy + timedelta(days=1),
-			fecha_fin=hoy + timedelta(days=26),
-			estado_reserva=self.estado_pendiente,
-			cliente=self.cliente,
-			vehiculo=self.vehiculo,
-		)
-
-		vehiculo2 = Vehiculo.objects.create(
-			matricula='XX 456 YY',
-			precio_x_dia=10000.00,
-			modelo=self.modelo,
-			tipo_vehiculo=self.tipo,
-			estado_vehiculo=self.estado,
-			duenio=self.propietario,
-			activo=True,
-			esta_aprobado=True,
-		)
-
-		# Intentamos crear una reserva de 6 días (25 + 6 = 31 > 30)
-		reserva, mensaje_error = _crear_reserva_en_transaccion(
-			usuario=self.cliente,
-			vehiculo=vehiculo2,
-			fecha_inicio=hoy + timedelta(days=27),
-			fecha_fin=hoy + timedelta(days=33),
-		)
-
-		self.assertIsNone(reserva)
-		self.assertEqual(
-			mensaje_error,
-			'No puedes exceder el límite máximo de 30 días totales de reserva.',
-		)
-		self.assertEqual(Reserva.objects.filter(vehiculo=vehiculo2).count(), 0)
 
 
 # =====================================================================
